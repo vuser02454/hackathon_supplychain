@@ -106,6 +106,21 @@ class VendorQuote(BaseModel):
     reliability: str
     selected: bool
 
+class RestockApprovalCreate(BaseModel):
+    po_number: str
+    sku: str
+    item: str
+    qty: int = 500
+    total_cost: str
+    unit_price: str
+    supplier: str
+    urgency: str = "Critical"
+    status: Optional[str] = "APPROVED / PAYMENT_PENDING"
+    reason: Optional[str] = None
+    financial_impact: Optional[str] = None
+    confidence_score: Optional[str] = "91.0%"
+    quotes: Optional[List[VendorQuote]] = []
+
 class RestockApprovalResponse(BaseModel):
     id: str
     po_number: str
@@ -318,6 +333,29 @@ class SimulateStockoutRequest(BaseModel):
     sku: str
     simulated_stock: Optional[int] = 18
 
+class SupplierMatrixItem(BaseModel):
+    supplier_id: str
+    supplier_name: str
+    unit_price: str
+    lead_time_days: int
+    otif: str
+    defect_rate: str
+    trust_score: int
+    composite_score: float
+    is_recommended: bool
+    rank: int
+    rationale: str
+
+class AIExplainabilityFactors(BaseModel):
+    cost_advantage_pts: int
+    delivery_speed_pts: int
+    otif_reliability_pts: int
+    defect_history_pts: int
+    stockout_avoidance_pts: int
+    confidence_pct: int
+    why_recommended: List[str]
+    expected_impact: dict
+
 class RestockRecommendationResponse(BaseModel):
     sku: str
     product_name: str
@@ -327,6 +365,8 @@ class RestockRecommendationResponse(BaseModel):
     reorder_point: int
     severity: str
     stockout_risk: str
+    stockout_risk_before: str = "82%"
+    stockout_risk_after: str = "14%"
     days_until_stockout: float
     average_daily_demand: float
     recommended_quantity: int
@@ -335,7 +375,50 @@ class RestockRecommendationResponse(BaseModel):
     supplier_reliability: str
     unit_price: str
     estimated_cost: str
+    estimated_savings: str = "₹48,600.00"
+    delivery_time_delta: str = "7 days → 4 days"
     ai_reasoning: str
+    explainability: Optional[AIExplainabilityFactors] = None
+    supplier_matrix: Optional[List[SupplierMatrixItem]] = []
+
+class DeliveryOutcomeRequest(BaseModel):
+    delivered_quantity: int
+    defective_quantity: int = 0
+    actual_lead_time_days: int
+    notes: Optional[str] = "Verified dock receipt with zero defects"
+
+class DeliveryOutcomeResponse(BaseModel):
+    order_id: str
+    supplier_id: str
+    supplier_name: str
+    sku: str
+    delivered_quantity: int
+    defective_quantity: int
+    expected_days: int
+    actual_days: int
+    outcome_status: str
+    previous_trust_score: int
+    updated_trust_score: int
+    previous_otif: str
+    updated_otif: str
+    previous_defect_rate: str
+    updated_defect_rate: str
+    score_delta: int
+    restock_resolved_alerts: int
+    message: str
+
+class ClosedLoopWorkflowStateResponse(BaseModel):
+    ai_recommendations_today: int
+    restocks_prevented: int
+    estimated_savings_total: str
+    pending_approvals_count: int
+    payments_completed_count: int
+    suppliers_improved_count: int
+    critical_stock_count: int
+    low_stock_count: int
+    normal_stock_count: int
+    highest_risk_sku: Optional[dict] = None
+
 
 
 

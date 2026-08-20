@@ -6,6 +6,7 @@ class UserModel(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
     phone = Column(String, default="+1 (555) 382-9014")
@@ -17,19 +18,25 @@ class OrderModel(Base):
     __tablename__ = "orders"
 
     id = Column(String, primary_key=True, index=True) # e.g. ORD-8942
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
+    po_number = Column(String, nullable=True, index=True) # e.g. PO-2026-8942
     item = Column(String, nullable=False)
-    sku = Column(String, nullable=False)
+    sku = Column(String, nullable=False, index=True)
     supplier = Column(String, nullable=False)
     origin = Column(String, nullable=False)
     destination = Column(String, nullable=False)
     carrier = Column(String, nullable=False)
-    status = Column(String, default="In Transit") # In Transit, Customs Hold, Delivered
+    status = Column(String, default="SHIPMENT_CREATED") # SHIPMENT_CREATED, IN_TRANSIT, DELIVERED, Customs Hold
     status_color = Column(String, default="tertiary")
     eta = Column(String, nullable=False)
     progress = Column(Integer, default=0)
     value = Column(String, nullable=False)
     priority = Column(String, default="High")
     timeline_json = Column(Text, nullable=True) # JSON serialized timeline
+    delivered_quantity = Column(Integer, default=0)
+    defective_quantity = Column(Integer, default=0)
+    actual_days = Column(Integer, default=0)
+    is_simulated_telemetry = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class InventoryModel(Base):
@@ -67,25 +74,30 @@ class RestockApprovalModel(Base):
     __tablename__ = "approvals"
 
     id = Column(String, primary_key=True, index=True) # e.g. APV-401
-    po_number = Column(String, nullable=False)
-    sku = Column(String, nullable=False)
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
+    po_number = Column(String, nullable=False, index=True)
+    sku = Column(String, nullable=False, index=True)
     item = Column(String, nullable=False)
     qty = Column(Integer, default=500)
     total_cost = Column(String, nullable=False)
     unit_price = Column(String, nullable=False)
     supplier = Column(String, nullable=False)
     urgency = Column(String, default="High")
-    status = Column(String, default="Pending Authorization") # Pending Authorization, Approved, Rejected
+    status = Column(String, default="Pending Authorization") # Pending Authorization, Approved, APPROVED / PAYMENT_PENDING, PAID, FULFILLED
     reason = Column(Text, nullable=True)
     financial_impact = Column(String, nullable=True)
     confidence_score = Column(String, default="99.0%")
     quotes_json = Column(Text, nullable=True) # JSON serialized quotes
+    ai_explainability_json = Column(Text, nullable=True) # JSON serialized factor weights
+    payment_id = Column(String, nullable=True)
+    shipment_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class NotificationModel(Base):
     __tablename__ = "notifications"
 
     id = Column(String, primary_key=True, index=True)
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
     title = Column(String, nullable=False)
     time_label = Column(String, default="Just now")
     is_read = Column(Boolean, default=False)
@@ -96,6 +108,7 @@ class PaymentTransactionModel(Base):
     __tablename__ = "payment_transactions"
 
     id = Column(String, primary_key=True, index=True) # e.g. pay_9842...
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
     order_id = Column(String, nullable=True, index=True) # e.g. ORD-8942
     po_number = Column(String, nullable=True, index=True) # e.g. PO-8942-RESTOCK
     amount = Column(Float, nullable=False) # e.g. 66880.00
@@ -126,5 +139,29 @@ class InventoryAlertModel(Base):
     ai_recommendation_json = Column(Text, nullable=True) # JSON with days_left, qty, supplier, etc.
     created_at = Column(DateTime, default=datetime.utcnow)
     resolved_at = Column(DateTime, nullable=True)
+
+class SupplierPerformanceHistoryModel(Base):
+    __tablename__ = "supplier_performance_history"
+
+    id = Column(String, primary_key=True, index=True) # e.g. SPH-2026-001
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
+    supplier_id = Column(String, nullable=False, index=True)
+    supplier_name = Column(String, nullable=False)
+    order_id = Column(String, nullable=True, index=True)
+    po_number = Column(String, nullable=True, index=True)
+    sku = Column(String, nullable=False)
+    delivered_quantity = Column(Integer, default=0)
+    defective_quantity = Column(Integer, default=0)
+    expected_lead_time_days = Column(Integer, default=3)
+    actual_lead_time_days = Column(Integer, default=3)
+    outcome_status = Column(String, default="DELIVERED_ON_TIME") # DELIVERED_EARLY, DELIVERED_ON_TIME, DELIVERED_LATE
+    previous_trust_score = Column(Integer, default=85)
+    updated_trust_score = Column(Integer, default=90)
+    previous_otif = Column(String, default="95.0%")
+    updated_otif = Column(String, default="96.5%")
+    previous_defect_rate = Column(String, default="1.5%")
+    updated_defect_rate = Column(String, default="1.2%")
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 

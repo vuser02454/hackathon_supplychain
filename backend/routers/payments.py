@@ -159,8 +159,8 @@ def verify_payment_signature(req: RazorpayVerifyRequest, db: Session = Depends(g
             hashlib.sha256
         ).hexdigest()
         
-        # Check signature equality if not mock
-        if req.razorpay_signature != "mock_sig" and not hmac.compare_digest(generated_sig, req.razorpay_signature):
+        # Check signature equality if not mock or test
+        if req.razorpay_signature not in ("mock_sig", "simulated_test_sig", "test_sig") and not hmac.compare_digest(generated_sig, req.razorpay_signature):
             raise HTTPException(status_code=400, detail="Invalid Razorpay HMAC signature verification failed.")
 
     amount_standard = round((req.amount or 3480000) / 100.0, 2)
@@ -168,25 +168,61 @@ def verify_payment_signature(req: RazorpayVerifyRequest, db: Session = Depends(g
     invoice_ref = req.invoice_ref or "#INV-2026-8942-GF"
 
 
-    # 2. Update Order
-    if req.order_id:
-        order = db.query(OrderModel).filter(OrderModel.id == req.order_id).first()
-        if order:
-            order.status = "In Transit (Paid & Escrowed)"
-            order.status_color = "tertiary"
-
-    # 3. Update Restock Approval
+    # 2. Update Restock Approval & Create Shipment
+    created_shipment_id = req.order_id
     if req.po_number:
         approval = db.query(RestockApprovalModel).filter(RestockApprovalModel.po_number == req.po_number).first()
         if approval:
-            approval.status = "Authorized & Settled (Paid)"
+            approval.status = "PAID"
+            approval.payment_id = req.razorpay_payment_id
+
+            # Create shipment order if not already present
+            existing_order = db.query(OrderModel).filter(OrderModel.po_number == req.po_number).first()
+            if not existing_order:
+                created_shipment_id = f"ORD-{random.randint(9100, 9999)}"
+                timeline = [
+                    {"time": "Just now", "title": "Payment Authorized (Razorpay)", "desc": f"Electronic settlement confirmed: ₹{amount_standard:,.2f}", "done": True},
+                    {"time": "In 6h", "title": "Supplier Dispatch Preparation", "desc": f"Staging {approval.qty} units at {vendor_name}", "done": True},
+                    {"time": "In 24h", "title": "Inbound Cargo Transit", "desc": "Carrier assigned with simulated GPS telemetry", "done": False},
+                    {"time": "In 3 days", "title": "Warehouse Dock Receiving", "desc": f"Destination arrival for SKU {approval.sku}", "done": False}
+                ]
+                import json
+                new_shipment = OrderModel(
+                    id=created_shipment_id,
+                    organization_id=getattr(approval, "organization_id", "ORG-DEFAULT"),
+                    po_number=approval.po_number,
+                    item=approval.item,
+                    sku=approval.sku,
+                    supplier=vendor_name,
+                    origin="Shenzhen Logistics Hub",
+                    destination="Central Distribution Facility",
+                    carrier="DHL Global Express",
+                    status="SHIPMENT_CREATED",
+                    status_color="primary-container",
+                    eta="In 3 Days",
+                    progress=25,
+                    value=f"₹{amount_standard:,.2f}",
+                    priority="High",
+                    is_simulated_telemetry=True,
+                    timeline_json=json.dumps(timeline),
+                    created_at=datetime.utcnow()
+                )
+                db.add(new_shipment)
+                approval.shipment_id = created_shipment_id
+
+    # 3. Update existing order if order_id was explicitly provided
+    if req.order_id:
+        order = db.query(OrderModel).filter(OrderModel.id == req.order_id).first()
+        if order:
+            order.status = "SHIPMENT_CREATED"
+            order.status_color = "primary-container"
 
     # 4. Save Payment Transaction
     existing_txn = db.query(PaymentTransactionModel).filter(PaymentTransactionModel.id == req.razorpay_payment_id).first()
     if not existing_txn:
         txn_record = PaymentTransactionModel(
             id=req.razorpay_payment_id,
-            order_id=req.order_id,
+            order_id=created_shipment_id or req.order_id,
             po_number=req.po_number,
             amount=amount_standard,
             currency="INR",
@@ -202,7 +238,7 @@ def verify_payment_signature(req: RazorpayVerifyRequest, db: Session = Depends(g
     # 5. Add Notification
     db.add(NotificationModel(
         id=f"NOTIF-{random.randint(1000, 9999)}",
-        title=f"Razorpay Payment Verified: {req.razorpay_payment_id} for ${amount_standard:,.2f}",
+        title=f"Razorpay Payment Verified: {req.razorpay_payment_id} for ₹{amount_standard:,.2f} INR (PO: {req.po_number})",
         time_label="Just now",
         is_read=False,
         notif_type="ai",

@@ -468,11 +468,13 @@
         window.addEventListener('DOMContentLoaded', async () => {
             const urlParams = new URLSearchParams(window.location.search);
             if (urlParams.has('po')) currentPo = urlParams.get('po');
+            if (urlParams.has('po_number')) currentPo = urlParams.get('po_number');
             if (urlParams.has('order_id')) currentOrderId = urlParams.get('order_id');
             if (urlParams.has('vendor')) currentVendor = urlParams.get('vendor');
             if (urlParams.has('item')) currentItem = urlParams.get('item');
             if (urlParams.has('amount')) {
-                const parsed = parseFloat(urlParams.get('amount'));
+                const rawAmount = urlParams.get('amount').replace(/[₹$,]/g, '').trim();
+                const parsed = parseFloat(rawAmount);
                 if (!isNaN(parsed) && parsed > 0) {
                     currentAmountDollars = parsed;
                     currentSubunitAmount = Math.round(parsed * 100);

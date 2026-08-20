@@ -1,18 +1,44 @@
 import json
 from sqlalchemy import text
 from backend.database import SessionLocal, engine, Base
-from backend.models import UserModel, OrderModel, InventoryModel, SupplierModel, RestockApprovalModel, NotificationModel, PaymentTransactionModel
+from backend.models import (
+    UserModel,
+    OrderModel,
+    InventoryModel,
+    SupplierModel,
+    RestockApprovalModel,
+    NotificationModel,
+    PaymentTransactionModel,
+    InventoryAlertModel,
+    SupplierPerformanceHistoryModel
+)
 
 def init_db_and_seed():
     Base.metadata.create_all(bind=engine)
     
     # Auto-migrate missing columns for SQLite
     with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR DEFAULT '+1 (555) 382-9014'"))
-            conn.commit()
-        except Exception:
-            pass # column already exists
+        for col_sql in [
+            "ALTER TABLE users ADD COLUMN phone VARCHAR DEFAULT '+1 (555) 382-9014'",
+            "ALTER TABLE users ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'",
+            "ALTER TABLE orders ADD COLUMN po_number VARCHAR",
+            "ALTER TABLE orders ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'",
+            "ALTER TABLE orders ADD COLUMN delivered_quantity INTEGER DEFAULT 0",
+            "ALTER TABLE orders ADD COLUMN defective_quantity INTEGER DEFAULT 0",
+            "ALTER TABLE orders ADD COLUMN actual_days INTEGER DEFAULT 0",
+            "ALTER TABLE orders ADD COLUMN is_simulated_telemetry BOOLEAN DEFAULT 1",
+            "ALTER TABLE approvals ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'",
+            "ALTER TABLE approvals ADD COLUMN payment_id VARCHAR",
+            "ALTER TABLE approvals ADD COLUMN shipment_id VARCHAR",
+            "ALTER TABLE approvals ADD COLUMN ai_explainability_json TEXT",
+            "ALTER TABLE notifications ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'",
+            "ALTER TABLE payment_transactions ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'"
+        ]:
+            try:
+                conn.execute(text(col_sql))
+                conn.commit()
+            except Exception:
+                pass # column already exists
 
     db = SessionLocal()
 
