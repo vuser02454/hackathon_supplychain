@@ -614,7 +614,64 @@ SUPPLIER SCORECARDS:
                 f"<div>• <strong>Escrow Vault:</strong> <span class=\"text-tertiary font-bold\">${escrow:,.2f} INR</span></div>"
                 f"</div>"
             )
-            return {"response": response_html, "confidence": 0.975, "suggested_actions": actions}
+    def generate_low_stock_restock_plan(self, item: dict, alert_severity: str = "LOW", supplier_info: Optional[dict] = None) -> dict:
+        """
+        Computes predictive stockout risk, days until stockout, recommended restock quantity,
+        and preferred supplier sourcing recommendation for low/critical inventory.
+        """
+        sku = item.get("sku", "SKU-UNKNOWN")
+        name = item.get("name", "Inventory Item")
+        warehouse = item.get("warehouse", "Regional Distribution Hub")
+        on_hand = int(item.get("on_hand", 0))
+        min_safety = int(item.get("min_safety", 100))
+        
+        # Calculate demand velocity
+        avg_daily_demand = round(max(min_safety / 8.0, 15.0), 1)
+        days_until_stockout = round(max(on_hand / avg_daily_demand, 0.4), 1)
+        
+        # Sourcing & quantity logic
+        recommended_quantity = max(min_safety * 2 - on_hand, min_safety, 150)
+        
+        # Unit pricing logic (parse string if needed)
+        unit_cost_str = item.get("unit_cost", "₹380.00")
+        try:
+            clean_price = float(unit_cost_str.replace("₹", "").replace("$", "").replace(",", "").strip())
+        except Exception:
+            clean_price = 28.00
+        
+        total_cost_num = recommended_quantity * clean_price
+        total_cost_str = f"₹{total_cost_num:,.2f}"
+        
+        supplier_name = supplier_info.get("name", "Apex Organic Produce") if supplier_info else "Apex Organic Produce"
+        lead_time_days = supplier_info.get("lead_time_days", 3) if supplier_info else 3
+        reliability = supplier_info.get("otif", "99.4%") if supplier_info else "99.4%"
+        
+        stockout_risk = "CRITICAL" if alert_severity == "CRITICAL" or days_until_stockout <= 2.0 else "HIGH"
+        
+        reasoning = (
+            f"High stockout risk. Current on-hand inventory ({on_hand} units) covers approximately {days_until_stockout} days of demand "
+            f"while supplier lead time is {lead_time_days} days. Recommend ordering {recommended_quantity} units from {supplier_name} ({reliability} OTIF) "
+            f"for estimated total of {total_cost_str}."
+        )
 
+        return {
+            "sku": sku,
+            "product_name": name,
+            "warehouse": warehouse,
+            "current_stock": on_hand,
+            "safety_stock": min_safety,
+            "reorder_point": min_safety,
+            "severity": alert_severity,
+            "stockout_risk": stockout_risk,
+            "days_until_stockout": days_until_stockout,
+            "average_daily_demand": avg_daily_demand,
+            "recommended_quantity": recommended_quantity,
+            "recommended_supplier": supplier_name,
+            "supplier_lead_time_days": lead_time_days,
+            "supplier_reliability": reliability,
+            "unit_price": unit_cost_str,
+            "estimated_cost": total_cost_str,
+            "ai_reasoning": reasoning
+        }
 
 ai_service = SupplyChainAIService()

@@ -107,3 +107,24 @@ class PaymentTransactionModel(Base):
     erp_synced = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class InventoryAlertModel(Base):
+    __tablename__ = "inventory_alerts"
+
+    id = Column(String, primary_key=True, index=True) # e.g. ALT-2026-1042
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
+    inventory_id = Column(String, nullable=True, index=True)
+    sku = Column(String, nullable=False, index=True)
+    product_name = Column(String, nullable=False)
+    warehouse = Column(String, nullable=False)
+    current_stock = Column(Integer, nullable=False)
+    safety_stock = Column(Integer, default=0)
+    reorder_point = Column(Integer, nullable=False)
+    severity = Column(String, default="LOW") # LOW, CRITICAL
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    email_sent = Column(Boolean, default=False)
+    ai_recommendation_json = Column(Text, nullable=True) # JSON with days_left, qty, supplier, etc.
+    created_at = Column(DateTime, default=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+
+

@@ -283,4 +283,59 @@ class InvoiceResponse(BaseModel):
     total: str
     escrow_verified: bool
 
+# Inventory Alert & Stockout Schemas
+class InventoryAlertResponse(BaseModel):
+    id: str
+    organization_id: str
+    inventory_id: Optional[str] = None
+    sku: str
+    product_name: str
+    warehouse: str
+    current_stock: int
+    safety_stock: int
+    reorder_point: int
+    severity: str # LOW, CRITICAL
+    message: str
+    is_read: bool
+    email_sent: bool
+    ai_recommendation: Optional[dict] = None
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
+class StockCheckResponse(BaseModel):
+    status: str
+    total_scanned: int
+    normal_count: int
+    low_count: int
+    critical_count: int
+    alerts_created: int
+    alerts_resolved: int
+    alerts: List[InventoryAlertResponse]
+
+class SimulateStockoutRequest(BaseModel):
+    sku: str
+    simulated_stock: Optional[int] = 18
+
+class RestockRecommendationResponse(BaseModel):
+    sku: str
+    product_name: str
+    warehouse: str
+    current_stock: int
+    safety_stock: int
+    reorder_point: int
+    severity: str
+    stockout_risk: str
+    days_until_stockout: float
+    average_daily_demand: float
+    recommended_quantity: int
+    recommended_supplier: str
+    supplier_lead_time_days: int
+    supplier_reliability: str
+    unit_price: str
+    estimated_cost: str
+    ai_reasoning: str
+
+
 

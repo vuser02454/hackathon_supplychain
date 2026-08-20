@@ -2736,15 +2736,635 @@
     };
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      initUnifiedUI();
-      injectGlobalUserGuide();
+  // --- 12. LOW STOCK ALERT & NOTIFICATION SYSTEM ---
+  let alertPollingInterval = null;
+
+  async function fetchUnreadAlerts() {
+    try {
+      const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/api/inventory/alerts/unread`);
+      if (res.ok) {
+        const data = await res.json();
+        updateNotificationBellBadge(data);
+        return data;
+      }
+    } catch (e) {
+      console.log('Unread alerts fetch note:', e);
+    }
+    return null;
+  }
+
+  function updateNotificationBellBadge(summary) {
+    const count = summary ? summary.unread_count : 0;
+    const hasCritical = summary ? summary.has_critical : false;
+
+    document.querySelectorAll('button[title="Notifications"], .sc-notif-bell-btn').forEach(btn => {
+      let badge = btn.querySelector('.sc-notif-badge');
+      if (count > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'sc-notif-badge absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white font-mono shadow-md';
+          btn.style.position = 'relative';
+          btn.appendChild(badge);
+        }
+        badge.textContent = count > 9 ? '9+' : count;
+        if (hasCritical) {
+          badge.className = 'sc-notif-badge absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white font-mono shadow-md bg-rose-600 animate-pulse border border-rose-400';
+        } else {
+          badge.className = 'sc-notif-badge absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white font-mono shadow-md bg-amber-500 border border-amber-300';
+        }
+      } else if (badge) {
+        badge.remove();
+      }
     });
-  } else {
+  }
+
+  function injectNotificationCenterPanel() {
+    if (document.getElementById('sc-notifications-panel')) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'sc-notifications-panel';
+    panel.className = 'fixed top-20 right-4 md:right-8 w-96 max-w-[calc(100vw-2rem)] z-[9995] bg-[#0b1622]/95 border border-[#273647] rounded-2xl shadow-2xl backdrop-blur-xl hidden flex-col overflow-hidden animate-fade-in max-h-[80vh]';
+    panel.innerHTML = `
+      <!-- Panel Header -->
+      <div class="p-4 border-b border-[#273647] bg-[#122131]/80 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="material-symbols-outlined text-[#ff5c35] text-xl" style="font-variation-settings: 'FILL' 1;">notifications_active</span>
+          <div>
+            <h3 class="text-sm font-black text-white geist">Supply Chain Alert Center</h3>
+            <p class="text-[10px] text-[#8992a8]">Live inventory threshold & autonomous email alerts</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button onclick="window.refreshAlertsPanel()" class="p-1 rounded-lg text-[#8992a8] hover:text-white hover:bg-[#1c2b3c] transition-colors" title="Scan Inventory Now">
+            <span class="material-symbols-outlined text-sm">sync</span>
+          </button>
+          <button onclick="window.toggleNotificationPanel()" class="p-1 rounded-lg text-[#8992a8] hover:text-white hover:bg-[#1c2b3c] transition-colors">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="flex border-b border-[#273647] bg-[#0d1c2d] px-3 gap-2 text-xs">
+        <button id="sc-notif-tab-unread" onclick="window.filterNotifTab('unread')" class="py-2.5 px-3 font-bold text-[#ff5c35] border-b-2 border-[#ff5c35] transition-all">
+          Active Alerts (<span id="sc-notif-active-count">0</span>)
+        </button>
+        <button id="sc-notif-tab-all" onclick="window.filterNotifTab('all')" class="py-2.5 px-3 font-bold text-[#8992a8] border-b-2 border-transparent hover:text-white transition-all">
+          History
+        </button>
+      </div>
+
+      <!-- Alerts List Body -->
+      <div id="sc-notif-list-container" class="p-3 overflow-y-auto space-y-2.5 flex-1 divide-y divide-[#273647]/40">
+        <div class="p-6 text-center text-[#8992a8] text-xs">
+          <span class="material-symbols-outlined text-2xl text-emerald-400 mb-1">verified</span>
+          <p>Scanning inventory telemetry...</p>
+        </div>
+      </div>
+
+      <!-- Panel Footer -->
+      <div class="p-3 border-t border-[#273647] bg-[#122131]/60 flex items-center justify-between text-[11px]">
+        <button onclick="window.simulateStockoutDemo()" class="px-2.5 py-1.5 rounded-lg bg-[#ff5c35]/20 hover:bg-[#ff5c35]/30 text-[#ff5c35] border border-[#ff5c35]/40 font-bold text-[10px] flex items-center gap-1.5 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-xs">bolt</span>
+          <span>⚡ DEMO: Simulate Stockout</span>
+        </button>
+        <a href="inventory.html" class="text-xs text-[#7bd0ff] hover:underline font-bold">Inspect Inventory &rarr;</a>
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    // Bind click to notification bell buttons
+    document.querySelectorAll('button[title="Notifications"], .sc-notif-bell-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        window.toggleNotificationPanel();
+      };
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (panel && !panel.contains(e.target) && !e.target.closest('button[title="Notifications"]') && !e.target.closest('.sc-notif-bell-btn')) {
+        panel.classList.replace('flex', 'hidden');
+      }
+    });
+
+    window.toggleNotificationPanel = function() {
+      if (panel.classList.contains('hidden')) {
+        panel.classList.replace('hidden', 'flex');
+        window.renderAlertsList();
+      } else {
+        panel.classList.replace('flex', 'hidden');
+      }
+    };
+
+    window.filterNotifTab = function(tab) {
+      const tabUnread = document.getElementById('sc-notif-tab-unread');
+      const tabAll = document.getElementById('sc-notif-tab-all');
+      if (tab === 'unread') {
+        if (tabUnread) tabUnread.className = 'py-2.5 px-3 font-bold text-[#ff5c35] border-b-2 border-[#ff5c35] transition-all';
+        if (tabAll) tabAll.className = 'py-2.5 px-3 font-bold text-[#8992a8] border-b-2 border-transparent hover:text-white transition-all';
+        window.renderAlertsList(false);
+      } else {
+        if (tabAll) tabAll.className = 'py-2.5 px-3 font-bold text-[#ff5c35] border-b-2 border-[#ff5c35] transition-all';
+        if (tabUnread) tabUnread.className = 'py-2.5 px-3 font-bold text-[#8992a8] border-b-2 border-transparent hover:text-white transition-all';
+        window.renderAlertsList(true);
+      }
+    };
+
+    window.refreshAlertsPanel = async function() {
+      try {
+        const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+        window.showToast('Scanning Telemetry', 'Checking inventory records against safety stock thresholds...', 'ai');
+        const res = await fetch(`${apiBase}/api/inventory/check-stock`, { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          window.renderAlertsList();
+          fetchUnreadAlerts();
+          if (data.alerts_created > 0) {
+            window.showToast('Inventory Alert', `${data.alerts_created} low/critical stock alerts generated and logged.`, 'error');
+          } else {
+            window.showToast('Scan Complete', `All ${data.total_scanned} inventory SKUs evaluated.`, 'success');
+          }
+        }
+      } catch (e) {
+        console.error('Scan error:', e);
+      }
+    };
+
+    window.renderAlertsList = async function(showHistory = false) {
+      const container = document.getElementById('sc-notif-list-container');
+      if (!container) return;
+
+      try {
+        const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+        const url = showHistory ? `${apiBase}/api/inventory/alerts?unresolved_only=false` : `${apiBase}/api/inventory/alerts?unresolved_only=true`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const alerts = await res.json();
+          const activeCountEl = document.getElementById('sc-notif-active-count');
+          if (activeCountEl && !showHistory) activeCountEl.textContent = alerts.length;
+
+          if (alerts.length === 0) {
+            container.innerHTML = `
+              <div class="p-8 text-center text-[#8992a8] space-y-2">
+                <span class="material-symbols-outlined text-3xl text-emerald-400">check_circle</span>
+                <p class="text-xs text-white font-bold">All Inventory Buffers Optimal</p>
+                <p class="text-[11px]">No active stockout warnings detected.</p>
+              </div>
+            `;
+            return;
+          }
+
+          container.innerHTML = alerts.map(a => {
+            const isCritical = a.severity === 'CRITICAL';
+            const icon = isCritical ? 'emergency' : 'warning';
+            const badgeBg = isCritical ? 'bg-rose-500/20 text-rose-400 border-rose-500/40' : 'bg-amber-500/20 text-amber-400 border-amber-500/40';
+            const emailBadge = a.email_sent 
+              ? `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-mono">📧 Email Dispatched</span>`
+              : `<span class="px-1.5 py-0.5 rounded bg-[#1c2b3c] text-[#8992a8] border border-[#273647] text-[9px] font-mono">📧 Logged (Demo Mode)</span>`;
+
+            return `
+              <div class="pt-3 first:pt-0 space-y-2">
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-sm ${isCritical ? 'text-rose-400 animate-pulse' : 'text-amber-400'}">${icon}</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border font-mono ${badgeBg}">${a.severity} STOCK</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    ${emailBadge}
+                    <button onclick="window.dismissAlert('${a.id}')" class="text-[#8992a8] hover:text-white p-0.5 rounded" title="Dismiss">
+                      <span class="material-symbols-outlined text-xs">close</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="text-xs font-bold text-white leading-tight">${a.product_name}</h4>
+                  <div class="flex items-center gap-2 text-[10px] text-[#8992a8] font-mono mt-0.5">
+                    <span>${a.sku}</span>
+                    <span>•</span>
+                    <span>${a.warehouse}</span>
+                  </div>
+                </div>
+
+                <div class="p-2 rounded-lg bg-[#0d1c2d] border border-[#273647] flex justify-between items-center text-[11px]">
+                  <div>
+                    <span class="text-[#8992a8]">Stock:</span>
+                    <strong class="${isCritical ? 'text-rose-400' : 'text-amber-400'} font-mono">${a.current_stock}</strong>
+                    <span class="text-[#8992a8]">/ ${a.reorder_point}</span>
+                  </div>
+                  ${a.ai_recommendation ? `<span class="text-[10px] text-[#7bd0ff] font-mono">~${a.ai_recommendation.days_until_stockout || 1.5}d buffer</span>` : ''}
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                  <button onclick="window.openAiRestockModal('${a.sku}', '${a.id}')" class="flex-1 py-1.5 px-2 rounded-lg bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow-md active:scale-95 transition-all">
+                    <span class="material-symbols-outlined text-xs">psychology</span>
+                    <span>Review AI Restock</span>
+                  </button>
+                  <a href="inventory.html" class="py-1.5 px-2 rounded-lg bg-[#1c2b3c] hover:bg-[#273647] text-[#bec6e0] hover:text-white text-[11px] font-bold transition-all">
+                    Inventory
+                  </a>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (e) {
+        console.error('Error rendering alerts:', e);
+      }
+    };
+
+    window.dismissAlert = async function(alertId) {
+      try {
+        const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+        await fetch(`${apiBase}/api/inventory/alerts/${alertId}/read`, { method: 'POST' });
+        window.renderAlertsList();
+        fetchUnreadAlerts();
+      } catch (e) {
+        console.error('Dismiss error:', e);
+      }
+    };
+  }
+
+  // --- 13. AI RESTOCK PROPOSAL MODAL (HUMAN-IN-THE-LOOP SAFEGUARD) ---
+  function injectAiRestockModal() {
+    if (document.getElementById('sc-ai-restock-modal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'sc-ai-restock-modal';
+    modal.className = 'fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md hidden items-center justify-center p-4 overflow-y-auto animate-fade-in';
+    modal.innerHTML = `
+      <div class="relative w-full max-w-xl bg-[#0b1622] border border-[#273647] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="p-5 border-b border-[#273647] bg-[#122131]/80 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-[#ff5c35]/20 border border-[#ff5c35]/40 flex items-center justify-center text-[#ff5c35]">
+              <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">psychology</span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-base font-black text-white geist">AI Restock Sourcing Proposal</h3>
+                <span id="sc-modal-severity-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40">CRITICAL</span>
+              </div>
+              <p class="text-xs text-[#8992a8]" id="sc-modal-sku-subtitle">SKU Analysis & Automated Replenishment Calculation</p>
+            </div>
+          </div>
+          <button onclick="window.closeAiRestockModal()" class="p-1.5 rounded-lg text-[#8992a8] hover:text-white hover:bg-[#1c2b3c] transition-colors">
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 overflow-y-auto space-y-5 text-xs text-[#d4e4fa]">
+          <!-- Product Summary -->
+          <div class="bg-[#122131] border border-[#273647] rounded-xl p-4 space-y-2">
+            <h4 id="sc-modal-product-name" class="text-sm font-bold text-white">Fresh Hass Avocados (Box of 24)</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] font-mono">
+              <div class="bg-[#0b1622] p-2 rounded-lg border border-[#273647]">
+                <div class="text-[#8992a8]">Current Stock</div>
+                <div id="sc-modal-curr-stock" class="text-rose-400 font-bold text-sm">18 Units</div>
+              </div>
+              <div class="bg-[#0b1622] p-2 rounded-lg border border-[#273647]">
+                <div class="text-[#8992a8]">Safety Reorder</div>
+                <div id="sc-modal-reorder-pt" class="text-white font-bold text-sm">350 Units</div>
+              </div>
+              <div class="bg-[#0b1622] p-2 rounded-lg border border-[#273647]">
+                <div class="text-[#8992a8]">Coverage</div>
+                <div id="sc-modal-days-left" class="text-amber-400 font-bold text-sm">~0.4 Days</div>
+              </div>
+              <div class="bg-[#0b1622] p-2 rounded-lg border border-[#273647]">
+                <div class="text-[#8992a8]">Daily Demand</div>
+                <div id="sc-modal-daily-demand" class="text-[#7bd0ff] font-bold text-sm">43.8/day</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Reasoning Card -->
+          <div class="bg-[#1c2b3c]/60 border-l-4 border-[#ff5c35] p-4 rounded-r-xl space-y-1.5">
+            <div class="font-bold text-[#ff5c35] flex items-center gap-1.5 text-xs">
+              <span class="material-symbols-outlined text-sm">smart_toy</span>
+              Neural Sourcing Diagnosis
+            </div>
+            <p id="sc-modal-ai-reasoning" class="text-[#d4e4fa] leading-relaxed text-xs">
+              High stockout risk. Immediate replenishment recommended to maintain buffer.
+            </p>
+          </div>
+
+          <!-- Restock Order Details (Editable) -->
+          <div class="bg-[#122131] border border-[#273647] rounded-xl p-4 space-y-3">
+            <h5 class="text-xs font-bold text-white flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-emerald-400 text-sm">local_shipping</span>
+              Recommended Procurement Parameters
+            </h5>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] text-[#8992a8] mb-1">Recommended Supplier</label>
+                <div id="sc-modal-supplier-name" class="p-2.5 rounded-lg bg-[#0b1622] border border-[#273647] font-bold text-white text-xs">
+                  Apex Organic Produce (99.4% OTIF)
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] text-[#8992a8] mb-1">Restock Quantity (Units)</label>
+                <div class="flex items-center gap-2">
+                  <input id="sc-modal-qty-input" type="number" value="680" class="w-full p-2 rounded-lg bg-[#0b1622] border border-[#273647] font-mono text-white text-xs font-bold focus:border-[#ff5c35] focus:outline-none" oninput="window.recalcAiModalCost()" />
+                </div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-[#0b1622] border border-[#273647] flex justify-between items-center text-xs font-mono">
+              <span class="text-[#bec6e0]">Total Estimated PO Value:</span>
+              <span id="sc-modal-total-cost" class="text-emerald-400 font-extrabold text-sm">₹19,040.00 INR</span>
+            </div>
+          </div>
+
+          <!-- Human in the Loop Note -->
+          <p class="text-[11px] text-center text-[#8992a8]">
+            🔒 <em>Human Approval Step: Approving will draft a Purchase Order into Restock Authorizations. No payment is charged until authorized.</em>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-[#273647] bg-[#122131]/80 flex items-center justify-between">
+          <button onclick="window.closeAiRestockModal()" class="px-4 py-2 rounded-xl border border-[#273647] text-[#8992a8] hover:text-white text-xs font-bold transition-all">
+            Dismiss / Reject
+          </button>
+          <div class="flex items-center gap-2">
+            <button id="sc-modal-approve-btn" onclick="window.confirmAiRestockPo()" class="px-5 py-2.5 rounded-xl bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-[#ff5c35]/25 active:scale-95 transition-all">
+              <span class="material-symbols-outlined text-sm">check_circle</span>
+              <span>Approve Restock & Route to PO &rarr;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    let activeModalSku = null;
+    let activeModalAlertId = null;
+    let activeUnitCostNum = 28.00;
+
+    window.openAiRestockModal = async function(sku, alertId) {
+      activeModalSku = sku;
+      activeModalAlertId = alertId;
+      modal.classList.replace('hidden', 'flex');
+
+      try {
+        const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+        const res = await fetch(`${apiBase}/api/inventory/${sku}/restock-recommendation`, { method: 'POST' });
+        if (res.ok) {
+          const rec = await res.json();
+          document.getElementById('sc-modal-product-name').textContent = rec.product_name;
+          document.getElementById('sc-modal-sku-subtitle').textContent = `${rec.sku} • ${rec.warehouse}`;
+          document.getElementById('sc-modal-curr-stock').textContent = `${rec.current_stock} Units`;
+          document.getElementById('sc-modal-reorder-pt').textContent = `${rec.reorder_point} Units`;
+          document.getElementById('sc-modal-days-left').textContent = `~${rec.days_until_stockout} Days`;
+          document.getElementById('sc-modal-daily-demand').textContent = `${rec.average_daily_demand}/day`;
+          document.getElementById('sc-modal-ai-reasoning').textContent = rec.ai_reasoning;
+          document.getElementById('sc-modal-supplier-name').textContent = `${rec.recommended_supplier} (${rec.supplier_reliability} OTIF, ${rec.supplier_lead_time_days}-Day Lead)`;
+          document.getElementById('sc-modal-qty-input').value = rec.recommended_quantity;
+
+          try {
+            activeUnitCostNum = parseFloat(rec.unit_price.replace(/[^0-9.]/g, '')) || 28.0;
+          } catch (e) {
+            activeUnitCostNum = 28.0;
+          }
+
+          window.recalcAiModalCost();
+
+          const sevBadge = document.getElementById('sc-modal-severity-badge');
+          if (sevBadge) {
+            sevBadge.textContent = rec.severity;
+            sevBadge.className = rec.severity === 'CRITICAL' 
+              ? 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40'
+              : 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40';
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching restock recommendation:', e);
+      }
+    };
+
+    window.recalcAiModalCost = function() {
+      const qtyInput = document.getElementById('sc-modal-qty-input');
+      const costEl = document.getElementById('sc-modal-total-cost');
+      const qty = parseInt(qtyInput ? qtyInput.value : 0) || 0;
+      const total = qty * activeUnitCostNum;
+      if (costEl) {
+        costEl.textContent = `₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} INR`;
+      }
+    };
+
+    window.closeAiRestockModal = function() {
+      modal.classList.replace('flex', 'hidden');
+    };
+
+    window.confirmAiRestockPo = async function() {
+      const qtyInput = document.getElementById('sc-modal-qty-input');
+      const qty = parseInt(qtyInput ? qtyInput.value : 0) || 500;
+      const totalCostStr = document.getElementById('sc-modal-total-cost').textContent;
+      const productName = document.getElementById('sc-modal-product-name').textContent;
+
+      // Create new approval PO in State
+      const poNum = `PO-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newApproval = {
+        id: `APV-${Date.now()}`,
+        poNumber: poNum,
+        sku: activeModalSku || 'SKU-RESTOCK',
+        item: productName,
+        qty: qty,
+        totalCost: totalCostStr,
+        unitPrice: `₹${activeUnitCostNum.toFixed(2)}`,
+        supplier: 'Apex Organic Produce (Preferred)',
+        urgency: 'Critical',
+        status: 'Pending Authorization',
+        reason: 'Autonomous Restock triggered from Low Stock / Critical Alert monitor',
+        financialImpact: `Shields against estimated ₹4,20,000 retail stockout loss`,
+        confidenceScore: '99.4%',
+        quotes: [
+          { vendor: 'Apex Organic Produce (Preferred)', price: `₹${activeUnitCostNum.toFixed(2)}/unit`, leadTime: '3 Days', reliability: '99.4%', selected: true },
+          { vendor: 'Global Fresh Alternate', price: `₹${(activeUnitCostNum * 1.15).toFixed(2)}/unit`, leadTime: '5 Days', reliability: '94.0%', selected: false }
+        ]
+      };
+
+      const approvals = window.SupplyChainState.get('approvals') || DEFAULT_STATE.approvals;
+      approvals.unshift(newApproval);
+      window.SupplyChainState.set('approvals', approvals);
+
+      // Resolve alert in backend if ID provided
+      if (activeModalAlertId) {
+        try {
+          const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+          await fetch(`${apiBase}/api/inventory/alerts/${activeModalAlertId}/resolve`, { method: 'POST' });
+        } catch (e) {
+          console.log('Resolve alert note:', e);
+        }
+      }
+
+      window.closeAiRestockModal();
+      window.showToast('Restock PO Generated', `Purchase Order ${poNum} created. Redirecting to Authorization Desk...`, 'success');
+
+      setTimeout(() => {
+        window.location.href = `restock-approval.html?highlight=${newApproval.id}`;
+      }, 800);
+    };
+  }
+
+  // --- 14. HACKATHON DEMO TRIGGER: SIMULATE STOCKOUT ---
+  window.simulateStockoutDemo = async function(sku = 'SKU-AVO-303') {
+    try {
+      window.showToast('Triggering Stockout Simulation', 'Simulating warehouse inventory drop below critical threshold...', 'ai');
+      const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/api/inventory/simulate-stockout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sku: sku, simulated_stock: 14 })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        
+        // Update local state inventory
+        const inventory = window.SupplyChainState.get('inventory') || DEFAULT_STATE.inventory;
+        const targetItem = inventory.find(i => i.sku === (data.simulated_sku || sku));
+        if (targetItem) {
+          targetItem.onHand = data.current_stock;
+          targetItem.status = 'Critical Low';
+          targetItem.statusColor = 'error';
+          window.SupplyChainState.set('inventory', inventory);
+        }
+
+        // Refresh alerts & notification bell
+        fetchUnreadAlerts();
+        if (window.renderAlertsList) window.renderAlertsList();
+        if (window.renderDashboardInventoryRiskWidget) window.renderDashboardInventoryRiskWidget();
+
+        window.showToast('🚨 CRITICAL STOCK ALERT', `${data.product_name} (${data.simulated_sku}) dropped to ${data.current_stock} units. Email alert generated!`, 'error');
+
+        // Automatically open the AI recommendation after a brief delay
+        setTimeout(() => {
+          window.openAiRestockModal(data.simulated_sku, data.alert);
+        }, 1200);
+      }
+    } catch (e) {
+      console.error('Simulate stockout error:', e);
+      window.showToast('Simulation Error', 'Failed to trigger stockout simulation.', 'error');
+    }
+  };
+
+  // --- 15. DASHBOARD INVENTORY RISK WIDGET ---
+  window.renderDashboardInventoryRiskWidget = async function() {
+    const container = document.getElementById('dashboard-inventory-risk-container');
+    if (!container) return;
+
+    try {
+      const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/api/inventory/alerts?unresolved_only=true`);
+      const alerts = res.ok ? await res.json() : [];
+
+      const criticalAlerts = alerts.filter(a => a.severity === 'CRITICAL');
+      const lowAlerts = alerts.filter(a => a.severity === 'LOW');
+      const highestRiskAlert = criticalAlerts[0] || lowAlerts[0] || alerts[0];
+
+      container.innerHTML = `
+        <div class="bg-[#0b1622] border border-[#273647] rounded-2xl p-5 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">warning</span>
+              </div>
+              <div>
+                <h3 class="font-headline-md text-sm font-bold text-white">Inventory Risk & Stockout Forecast</h3>
+                <p class="text-[11px] text-[#8992a8]">Continuous safety buffer monitoring & automated email alerts</p>
+              </div>
+            </div>
+            <button onclick="window.simulateStockoutDemo()" class="px-3 py-1.5 rounded-lg bg-[#ff5c35]/20 hover:bg-[#ff5c35]/30 text-[#ff5c35] border border-[#ff5c35]/40 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
+              <span class="material-symbols-outlined text-sm">bolt</span>
+              <span>⚡ DEMO: Simulate Stockout</span>
+            </button>
+          </div>
+
+          <!-- Metric Pills -->
+          <div class="grid grid-cols-3 gap-2 text-center font-mono">
+            <div class="p-2.5 rounded-xl bg-[#122131] border border-rose-500/30">
+              <div class="text-xs text-[#8992a8]">CRITICAL</div>
+              <div class="text-base font-extrabold text-rose-400">${criticalAlerts.length}</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#122131] border border-amber-500/30">
+              <div class="text-xs text-[#8992a8]">LOW STOCK</div>
+              <div class="text-base font-extrabold text-amber-400">${lowAlerts.length}</div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#122131] border border-emerald-500/30">
+              <div class="text-xs text-[#8992a8]">NORMAL</div>
+              <div class="text-base font-extrabold text-emerald-400">4</div>
+            </div>
+          </div>
+
+          <!-- Highest Risk Spotlight Card -->
+          ${highestRiskAlert ? `
+            <div class="p-3.5 rounded-xl bg-[#122131] border border-rose-500/40 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 font-mono font-bold text-[10px]">
+                  🚨 HIGHEST RISK: ${highestRiskAlert.sku}
+                </span>
+                <span class="text-[#8992a8] text-[11px]">${highestRiskAlert.warehouse}</span>
+              </div>
+              <div class="font-bold text-white text-xs">${highestRiskAlert.product_name}</div>
+              <div class="flex items-center justify-between text-[11px] font-mono text-[#bec6e0]">
+                <span>Current Stock: <strong class="text-rose-400">${highestRiskAlert.current_stock}</strong> / ${highestRiskAlert.reorder_point}</span>
+                <span>Buffer: <strong class="text-amber-400">~${highestRiskAlert.ai_recommendation ? highestRiskAlert.ai_recommendation.days_until_stockout : '0.4'} Days</strong></span>
+              </div>
+              <div class="pt-1 flex items-center gap-2">
+                <button onclick="window.openAiRestockModal('${highestRiskAlert.sku}', '${highestRiskAlert.id}')" class="w-full py-2 px-3 rounded-lg bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all">
+                  <span class="material-symbols-outlined text-sm">psychology</span>
+                  <span>Review AI Sourcing Recommendation &rarr;</span>
+                </button>
+              </div>
+            </div>
+          ` : `
+            <div class="p-4 rounded-xl bg-[#122131] border border-emerald-500/30 text-center space-y-1">
+              <span class="material-symbols-outlined text-emerald-400 text-xl">check_circle</span>
+              <p class="text-xs text-white font-bold">All Inventory Buffers Healthy</p>
+              <p class="text-[11px] text-[#8992a8]">Zero stockout penalties projected across global facilities.</p>
+            </div>
+          `}
+        </div>
+      `;
+    } catch (e) {
+      console.error('Error rendering dashboard inventory risk:', e);
+    }
+  };
+
+  // --- INITIALIZATION HOOKS ---
+  function initUnifiedAlertsAndUI() {
     initUnifiedUI();
     injectGlobalUserGuide();
+    injectNotificationCenterPanel();
+    injectAiRestockModal();
+    fetchUnreadAlerts();
+    
+    if (document.getElementById('dashboard-inventory-risk-container')) {
+      window.renderDashboardInventoryRiskWidget();
+    }
+
+    // Polling every 45 seconds for continuous telemetry
+    if (!alertPollingInterval) {
+      alertPollingInterval = setInterval(() => {
+        fetchUnreadAlerts();
+      }, 45000);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initUnifiedAlertsAndUI);
+  } else {
+    initUnifiedAlertsAndUI();
   }
 
 })();
+
 
