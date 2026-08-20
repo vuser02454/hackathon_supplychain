@@ -158,19 +158,69 @@ python main.py
 
 ---
 
+## ☁️ Deployment Guides
+
+### 🟣 Deploy to Render (Recommended for Full Python FastAPI & WebSockets)
+
+Render provides native FastAPI Python hosting with automatic continuous deployment on every GitHub push.
+
+#### Option A: 1-Click Blueprints (Using `render.yaml`)
+1. Log in to **[Render Dashboard](https://dashboard.render.com/)**.
+2. Click **New +** $\rightarrow$ **Blueprint**.
+3. Connect your GitHub repository: `https://github.com/vuser02454/hackathon_supplychain`.
+4. Render will automatically detect [`render.yaml`](render.yaml) and configure the web service.
+5. Add your Environment Variables in the Render UI (`SUPABASE_URL`, `SUPABASE_KEY`, `OPENROUTER_API_KEY`, etc.).
+6. Click **Apply** to build and deploy.
+
+#### Option B: Manual Web Service Setup
+1. In Render, click **New +** $\rightarrow$ **Web Service**.
+2. Connect your repository `hackathon_supplychain`.
+3. Configure the following fields:
+   - **Environment:** `Python 3`
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+4. Add Environment Variables under **Environment**:
+   - `PYTHON_VERSION`: `3.11.9`
+   - `SUPABASE_URL`: `https://jqkgavoculcubjqwgsrae.supabase.co`
+   - `SUPABASE_KEY`: `your_supabase_anon_key`
+   - `OPENROUTER_API_KEY`: `your_openrouter_api_key`
+5. Click **Create Web Service**.
+
+---
+
+### ▲ Deploy to Vercel (Serverless Python & Global CDN)
+
+The repository includes [`vercel.json`](vercel.json) pre-configured to route API requests to FastAPI and static assets to Vercel's Edge Network.
+
+#### Deployment Steps:
+1. Log in to **[Vercel Dashboard](https://vercel.com/dashboard)**.
+2. Click **Add New...** $\rightarrow$ **Project**.
+3. Import your GitHub repository: `vuser02454/hackathon_supplychain`.
+4. In **Project Settings**:
+   - **Framework Preset:** `Other`
+   - **Root Directory:** `./`
+5. Expand **Environment Variables** and add:
+   - `SUPABASE_URL`: `https://jqkgavoculcubjqwgsrae.supabase.co`
+   - `SUPABASE_KEY`: `your_supabase_anon_key`
+   - `OPENROUTER_API_KEY`: `your_openrouter_api_key`
+   - `GEMINI_API_KEY`: `your_gemini_api_key`
+6. Click **Deploy**. Vercel will build and assign your production URL (e.g. `https://hackathon-supplychain.vercel.app`).
+
+---
+
 ## 🌐 Available Application URLs & Endpoints
 
 | Resource | URL | Description |
 | :--- | :--- | :--- |
 | **Authentication Portal** | [http://localhost:8000/](http://localhost:8000/) | Enterprise login portal |
 | **Executive Dashboard** | [http://localhost:8000/dashboard](http://localhost:8000/dashboard) | Central command dashboard |
-| **Profile & Settings** | [http://localhost:8000/profile](http://localhost:8000/profile) | Executive profile, photo, phone, & email verification |
+| **Profile & Settings** | [http://localhost:8000/profile](http://localhost:8000/profile) | Executive profile, photo, phone, & Supabase sync |
 | **Freight Tracking** | [http://localhost:8000/orders](http://localhost:8000/orders) | Live shipment tracking |
-| **Inventory Intelligence**| [http://localhost:8000/inventory](http://localhost:8000/inventory) | Stock & warehouse management |
+| **Inventory Intelligence**| [http://localhost:8000/inventory](http://localhost:8000/inventory) | Stock & warehouse management in ₹ INR |
 | **Supplier Scorecards** | [http://localhost:8000/suppliers](http://localhost:8000/suppliers) | Vendor ratings & metrics |
-| **AI Demand Forecasting**| [http://localhost:8000/ai-insights](http://localhost:8000/ai-insights) | Neural forecasts & Copilot |
+| **AI Demand Forecasting**| [http://localhost:8000/ai-insights](http://localhost:8000/ai-insights) | Neural profit/loss forecast & vendor arbitrage |
 | **Restock Approvals** | [http://localhost:8000/restock-approval](http://localhost:8000/restock-approval) | Purchase order authorization desk |
-| **Payment Gateway** | [http://localhost:8000/payments](http://localhost:8000/payments) | B2B payment & escrow portal |
+| **Payment Gateway** | [http://localhost:8000/payments](http://localhost:8000/payments) | B2B payment & escrow portal in ₹ INR |
 | **Interactive API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Swagger UI for all backend endpoints |
 | **ReDoc Documentation** | [http://localhost:8000/redoc](http://localhost:8000/redoc) | Alternative OpenAPI documentation |
 | **Health Check** | [http://localhost:8000/api/health](http://localhost:8000/api/health) | Platform status & subsystem health |

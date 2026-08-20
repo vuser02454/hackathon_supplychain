@@ -1,0 +1,71 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "*.jpg",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/docs",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/openapi.json",
+      "dest": "backend/main.py"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/dashboard.html"
+    },
+    {
+      "src": "/inventory",
+      "dest": "/inventory.html"
+    },
+    {
+      "src": "/orders",
+      "dest": "/orders.html"
+    },
+    {
+      "src": "/suppliers",
+      "dest": "/suppliers.html"
+    },
+    {
+      "src": "/ai-insights",
+      "dest": "/ai-insights.html"
+    },
+    {
+      "src": "/restock-approval",
+      "dest": "/restock-approval.html"
+    },
+    {
+      "src": "/payments",
+      "dest": "/payments.html"
+    },
+    {
+      "src": "/profile",
+      "dest": "/profile.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
