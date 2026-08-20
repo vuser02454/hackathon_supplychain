@@ -96,6 +96,13 @@ AI USES OUTCOME FOR FUTURE SOURCING DECISIONS (Closed-Loop Feedback)
 - **Historical Ledger (`SupplierPerformanceHistoryModel`):** Permanent audit trail queried by the AI engine for future sourcing decisions.
 - **Inventory Replenishment:** Automatically replenishes warehouse balances and resolves open stockout alerts.
 
+### 6. 📱 Mobile-First Enterprise Responsive Experience
+- **Persistent Mobile Bottom Navigation Bar:** Glassmorphism fixed bottom bar (`md:hidden`) for 1-thumb access to Overview, Inventory, Logistics, Approvals (with dynamic pending counter badge), and Payments.
+- **Slide-Over Mobile Drawer:** Comprehensive navigation drawer with direct links to all 8 modules, active page indicator, user profile snapshot, and a 1-tap "Run Stockout AI Demo" trigger.
+- **Touch-First Modal Dialogs:** Full-viewport touch-optimized modals with $\ge 44\text{px}$ action buttons, vertically stacked mobile layouts, and scrollable candidate matrices.
+- **Responsive 2-Column KPI Cards:** Dashboard executive resilience metrics and inventory status indicators optimized in 2-column pairs for compact mobile viewing.
+- **Touch-Swipe Data Tables:** Smooth horizontal scrolling wrappers on data tables prevent viewport distortion on smaller handheld devices.
+
 ---
 
 ## 🛠️ Architecture & Tech Stack
