@@ -1604,43 +1604,116 @@
     });
   }
 
-  // --- MOBILE DRAWER ---
+  // --- MOBILE DRAWER & NAVIGATION ---
   function toggleMobileDrawer() {
     let mobileDrawer = document.getElementById('sc-mobile-drawer');
     if (!mobileDrawer) {
+      const currentPath = window.location.pathname.split('/').pop() || 'dashboard.html';
+      const user = window.SupplyChainState.get('user') || DEFAULT_STATE.user;
+      
       mobileDrawer = document.createElement('div');
       mobileDrawer.id = 'sc-mobile-drawer';
-      mobileDrawer.className = 'fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col p-6 text-white';
+      mobileDrawer.className = 'fixed inset-0 z-50 bg-black/85 backdrop-blur-lg flex flex-col p-5 text-white animate-fade-in';
+      mobileDrawer.onclick = (e) => {
+        if (e.target === mobileDrawer) mobileDrawer.remove();
+      };
+      
+      const navLinks = [
+        { href: 'dashboard.html', icon: 'dashboard', label: 'Dashboard Overview' },
+        { href: 'orders.html', icon: 'local_shipping', label: 'Orders & Logistics' },
+        { href: 'inventory.html', icon: 'inventory_2', label: 'Inventory Intelligence' },
+        { href: 'suppliers.html', icon: 'factory', label: 'Supplier Scorecards' },
+        { href: 'ai-insights.html', icon: 'psychology', label: 'AI Demand Insights' },
+        { href: 'restock-approval.html', icon: 'fact_check', label: 'Restock Approvals' },
+        { href: 'payments.html', icon: 'account_balance_wallet', label: 'Payment Gateway & Escrow' },
+        { href: 'profile.html', icon: 'person', label: 'Profile & Organization' }
+      ];
+
       mobileDrawer.innerHTML = `
-        <div class="flex justify-between items-center mb-8 border-b border-[#273647] pb-4">
+        <div class="flex justify-between items-center mb-5 border-b border-[#273647] pb-3">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded bg-[#ff5c35] text-[#5a0e00] flex items-center justify-center font-bold">S</div>
-            <h2 class="font-bold text-lg">SupplyChain.AI</h2>
+            <div class="w-9 h-9 rounded-xl bg-[#ff5c35] text-[#5a0e00] flex items-center justify-center font-bold text-sm shadow-md">S</div>
+            <div>
+              <h2 class="font-extrabold text-base text-white">SupplyChain.AI</h2>
+              <p class="text-[10px] text-[#8992a8] font-mono">${user.name || 'Alexander Vance'}</p>
+            </div>
           </div>
-          <button onclick="document.getElementById('sc-mobile-drawer').remove()" class="p-2">
-            <span class="material-symbols-outlined">close</span>
+          <button onclick="document.getElementById('sc-mobile-drawer').remove()" class="w-9 h-9 rounded-xl bg-[#1c2b3c] flex items-center justify-center text-[#bec6e0] active:scale-95 transition-transform">
+            <span class="material-symbols-outlined text-base">close</span>
           </button>
-        </div>
-        <div class="space-y-3 flex-1 overflow-y-auto text-base">
-          <a href="dashboard.html" class="flex items-center gap-3 p-3 rounded-lg bg-[#1c2b3c]"><span class="material-symbols-outlined">dashboard</span> Dashboard</a>
-          <a href="orders.html" class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1c2b3c]"><span class="material-symbols-outlined">shopping_cart</span> Orders & Logistics</a>
-          <a href="inventory.html" class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1c2b3c]"><span class="material-symbols-outlined">inventory_2</span> Inventory Intelligence</a>
-          <a href="suppliers.html" class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1c2b3c]"><span class="material-symbols-outlined">factory</span> Supplier Management</a>
-          <a href="ai-insights.html" class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1c2b3c]"><span class="material-symbols-outlined">psychology</span> AI Demand Insights</a>
-          <a href="restock-approval.html" class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1c2b3c]"><span class="material-symbols-outlined">fact_check</span> Restock Approvals</a>
-          <a href="payments.html" class="flex items-center gap-3 p-3 rounded-lg hover:bg-[#1c2b3c]"><span class="material-symbols-outlined">account_balance_wallet</span> Payment Gateway & Escrow</a>
         </div>
 
-        <div class="pt-6 border-t border-[#273647] space-y-3">
-          <button onclick="document.getElementById('modal-new-order').classList.replace('hidden','flex'); document.getElementById('sc-mobile-drawer').remove();" class="w-full bg-[#ff5c35] text-[#5a0e00] py-3 rounded-lg font-bold flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined">add</span> Create New Order
+        <div class="space-y-1.5 flex-1 overflow-y-auto pr-1 text-sm font-['Inter',sans-serif]">
+          ${navLinks.map(link => {
+            const isActive = currentPath === link.href;
+            return `
+              <a href="${link.href}" class="flex items-center gap-3 p-3 rounded-xl transition-all ${
+                isActive 
+                  ? 'bg-[#ff5c35] text-white font-bold shadow-lg shadow-[#ff5c35]/20' 
+                  : 'bg-[#122131]/80 hover:bg-[#1c2b3c] text-[#d4e4fa]'
+              }">
+                <span class="material-symbols-outlined text-lg ${isActive ? 'text-white' : 'text-[#ff5c35]'}">${link.icon}</span>
+                <span>${link.label}</span>
+              </a>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="pt-4 border-t border-[#273647] space-y-2 mt-auto">
+          <button onclick="window.simulateStockoutDemo(); document.getElementById('sc-mobile-drawer').remove();" class="w-full py-2.5 px-3 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold font-mono flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+            <span class="material-symbols-outlined text-sm">bolt</span> Run Stockout AI Demo
           </button>
-          <a href="index.html" class="block text-center text-[#bec6e0] text-sm py-2">Sign Out</a>
+          <a href="index.html" class="block text-center text-[#8992a8] hover:text-white text-xs py-1.5 font-mono">Sign Out & Lock Workspace</a>
         </div>
       `;
       document.body.appendChild(mobileDrawer);
     } else {
       mobileDrawer.remove();
+    }
+  }
+
+  // --- PERSISTENT MOBILE BOTTOM NAVIGATION BAR ---
+  function injectMobileBottomNav() {
+    if (document.getElementById('sc-mobile-bottom-nav')) return;
+
+    // Do not inject on index/login page
+    const currentPath = window.location.pathname.split('/').pop() || 'dashboard.html';
+    if (currentPath === 'index.html' || currentPath === '') return;
+
+    const nav = document.createElement('nav');
+    nav.id = 'sc-mobile-bottom-nav';
+    nav.className = 'md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#07121e]/95 backdrop-blur-xl border-t border-[#273647]/80 flex items-center justify-around px-1 py-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]';
+
+    const tabs = [
+      { href: 'dashboard.html', icon: 'dashboard', label: 'Overview' },
+      { href: 'inventory.html', icon: 'inventory_2', label: 'Inventory' },
+      { href: 'orders.html', icon: 'local_shipping', label: 'Logistics' },
+      { href: 'restock-approval.html', icon: 'fact_check', label: 'Approvals', hasBadge: true },
+      { href: 'payments.html', icon: 'account_balance_wallet', label: 'Payments' }
+    ];
+
+    const pendingCount = (window.SupplyChainState.get('approvals') || []).length;
+
+    nav.innerHTML = tabs.map(tab => {
+      const isActive = currentPath === tab.href;
+      return `
+        <a href="${tab.href}" class="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all relative ${
+          isActive ? 'text-[#ff5c35] font-bold' : 'text-[#8992a8] hover:text-white'
+        }">
+          <span class="material-symbols-outlined text-[22px] transition-transform ${isActive ? 'scale-110' : ''}" style="${isActive ? "font-variation-settings: 'FILL' 1;" : ''}">${tab.icon}</span>
+          <span class="text-[10px] font-mono mt-0.5 tracking-tight">${tab.label}</span>
+          ${tab.hasBadge && pendingCount > 0 ? `<span class="absolute top-0.5 right-2 w-2 h-2 bg-[#ff5c35] rounded-full animate-pulse"></span>` : ''}
+          ${isActive ? `<span class="w-1.5 h-1.5 rounded-full bg-[#ff5c35] mt-0.5"></span>` : ''}
+        </a>
+      `;
+    }).join('');
+
+    document.body.appendChild(nav);
+
+    // Add padding to main container so content doesn't collide with bottom bar
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.classList.add('pb-24', 'md:pb-6');
     }
   }
 
@@ -3349,12 +3422,12 @@
         </div>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-[#273647] bg-[#122131]/80 flex items-center justify-between">
-          <button onclick="window.closeAiRestockModal()" class="px-4 py-2 rounded-xl border border-[#273647] text-[#8992a8] hover:text-white text-xs font-bold transition-all">
+        <div class="p-3.5 sm:p-4 border-t border-[#273647] bg-[#122131]/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <button onclick="window.closeAiRestockModal()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-[#273647] text-[#8992a8] hover:text-white text-xs font-bold transition-all text-center">
             Dismiss / Reject
           </button>
           <div class="flex items-center gap-2">
-            <button id="sc-modal-approve-btn" onclick="window.confirmAiRestockPo()" class="px-5 py-2.5 rounded-xl bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-[#ff5c35]/25 active:scale-95 transition-all">
+            <button id="sc-modal-approve-btn" onclick="window.confirmAiRestockPo()" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#ff5c35]/25 active:scale-95 transition-all">
               <span class="material-symbols-outlined text-sm">check_circle</span>
               <span>Approve Restock & Create PO &rarr;</span>
             </button>
@@ -3599,11 +3672,11 @@
           </div>
         </div>
 
-        <div class="p-4 border-t border-[#273647] bg-[#122131]/80 flex items-center justify-between">
-          <button onclick="window.closeShipmentOutcomeModal()" class="px-4 py-2 rounded-xl border border-[#273647] text-[#8992a8] hover:text-white text-xs font-bold transition-all">
+        <div class="p-3.5 sm:p-4 border-t border-[#273647] bg-[#122131]/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <button onclick="window.closeShipmentOutcomeModal()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-[#273647] text-[#8992a8] hover:text-white text-xs font-bold transition-all text-center">
             Cancel
           </button>
-          <button onclick="window.submitShipmentDeliveryOutcome()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/25 active:scale-95 transition-all">
+          <button onclick="window.submitShipmentDeliveryOutcome()" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/25 active:scale-95 transition-all">
             <span class="material-symbols-outlined text-sm">check_circle</span>
             <span>Record Outcome & Update AI Sourcing &rarr;</span>
           </button>
@@ -3780,8 +3853,8 @@
         </div>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-[#273647] bg-[#122131]/80 flex justify-end">
-          <button onclick="window.closeTraceabilityModal()" class="px-5 py-2 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-xs transition-all">
+        <div class="p-3.5 sm:p-4 border-t border-[#273647] bg-[#122131]/80 flex justify-end">
+          <button onclick="window.closeTraceabilityModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-xs transition-all text-center">
             Close Traceability Audit
           </button>
         </div>
@@ -4081,6 +4154,7 @@
     injectAiRestockModal();
     injectShipmentOutcomeModal();
     injectTraceabilityModal();
+    injectMobileBottomNav();
     fetchUnreadAlerts();
     
     if (document.getElementById('dashboard-inventory-risk-container')) {
