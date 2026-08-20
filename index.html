@@ -169,39 +169,66 @@
 <h2 class="font-display-lg text-display-lg uppercase tracking-tighter mb-4 text-on-surface">System Access</h2>
 <p class="font-body-lg text-body-lg text-on-surface-variant max-w-md">Secure enterprise intelligence gateway. Please authenticate to view global logistics telemetry.</p>
 </div>
-<div class="bg-surface-container rounded-xl p-8 border border-outline-variant/30 shadow-[0px_8px_24px_rgba(0,0,0,0.5)]">
-<div class="flex items-center justify-between mb-8 pb-4 border-b border-outline-variant/50">
-<h3 class="font-headline-md text-headline-md uppercase tracking-tight">Business Owner Login</h3>
-<span class="font-label-mono text-label-mono text-tertiary px-3 py-1 bg-tertiary-container/10 rounded-full border border-tertiary/20 flex items-center gap-1">
-<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
-                        SECURE
-                    </span>
+<div class="bg-surface-container rounded-xl p-6 sm:p-8 border border-outline-variant/30 shadow-[0px_8px_24px_rgba(0,0,0,0.5)] space-y-6">
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant/50">
+    <div>
+        <h3 class="font-headline-md text-headline-md uppercase tracking-tight text-white">Instant System Access</h3>
+        <p class="text-xs text-secondary mt-0.5">Simple onboarding for new users & evaluators</p>
+    </div>
+    <span class="font-label-mono text-[10px] text-tertiary px-2.5 py-1 bg-tertiary-container/10 rounded-full border border-tertiary/20 flex items-center gap-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+        1-CLICK READY
+    </span>
 </div>
-<form class="space-y-6">
+
+<!-- 1-Click Demo Persona Quick Start -->
+<div class="space-y-2">
+    <label class="block font-label-mono text-[11px] text-secondary uppercase font-bold">⚡ Quick-Start Demo Personas</label>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button type="button" onclick="window.quickSignIn('a.vance@supplychain.ai', 'Alexander Vance', 'VP of Logistics')" class="p-2.5 rounded-lg bg-[#122131] border border-[#273647] hover:border-[#ff5c35] text-left text-xs transition-all flex items-center gap-2.5 group active:scale-95">
+            <span class="w-7 h-7 rounded bg-[#ff5c35]/20 text-[#ff5c35] flex items-center justify-center font-bold font-mono text-xs">AV</span>
+            <div>
+                <strong class="text-white block group-hover:text-[#ff5c35] transition-colors">Alexander Vance</strong>
+                <span class="text-[10px] text-[#8992a8]">VP Logistics (Full Admin)</span>
+            </div>
+        </button>
+        <button type="button" onclick="window.quickSignIn('s.chen@supplychain.ai', 'Sophia Chen', 'Procurement Officer')" class="p-2.5 rounded-lg bg-[#122131] border border-[#273647] hover:border-[#7bd0ff] text-left text-xs transition-all flex items-center gap-2.5 group active:scale-95">
+            <span class="w-7 h-7 rounded bg-[#7bd0ff]/20 text-[#7bd0ff] flex items-center justify-center font-bold font-mono text-xs">SC</span>
+            <div>
+                <strong class="text-white block group-hover:text-[#7bd0ff] transition-colors">Sophia Chen</strong>
+                <span class="text-[10px] text-[#8992a8]">Procurement Lead</span>
+            </div>
+        </button>
+    </div>
+</div>
+
+<div class="relative flex py-1 items-center">
+    <div class="flex-grow border-t border-outline-variant/40"></div>
+    <span class="flex-shrink mx-3 text-secondary font-mono text-[10px] uppercase">Or Onboard with Your Email</span>
+    <div class="flex-grow border-t border-outline-variant/40"></div>
+</div>
+
+<form class="space-y-4">
 <div>
-<label class="block font-label-mono text-label-mono text-secondary mb-2 uppercase" for="email">Corporate Email</label>
+<label class="block font-label-mono text-[11px] text-secondary mb-1.5 uppercase" for="name">Your Name</label>
 <div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">mail</span>
-<input class="w-full bg-[#1E293B] border border-outline-variant rounded-lg py-3 pl-10 pr-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-lg text-body-lg" id="email" placeholder="admin@enterprise.com" type="email"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">person</span>
+<input class="w-full bg-[#1E293B] border border-outline-variant rounded-lg py-2.5 pl-9 pr-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-xs font-body-lg" id="name" placeholder="e.g. John Doe" type="text" value="Alexander Vance"/>
 </div>
 </div>
+
 <div>
-<label class="block font-label-mono text-label-mono text-secondary mb-2 uppercase" for="password">Password</label>
+<label class="block font-label-mono text-[11px] text-secondary mb-1.5 uppercase" for="email">Your Corporate / Personal Email</label>
 <div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">lock</span>
-<input class="w-full bg-[#1E293B] border border-outline-variant rounded-lg py-3 pl-10 pr-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-lg text-body-lg" id="password" placeholder="••••••••" type="password"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">mail</span>
+<input class="w-full bg-[#1E293B] border border-outline-variant rounded-lg py-2.5 pl-9 pr-4 text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-xs font-body-lg" id="email" placeholder="e.g. yourname@company.com" type="email" value="a.vance@supplychain.ai"/>
 </div>
+<p class="text-[10px] text-[#8992a8] mt-1">💡 All low-stock alerts and PO approvals will be dispatched directly to this email.</p>
 </div>
-<div class="flex items-center justify-between pt-2">
-<label class="flex items-center gap-2 cursor-pointer group">
-<input class="form-checkbox rounded bg-[#1E293B] border-outline-variant text-primary focus:ring-primary focus:ring-offset-background" type="checkbox"/>
-<span class="font-body-sm text-body-sm text-on-surface-variant group-hover:text-on-surface transition-colors">Remember credentials</span>
-</label>
-<a class="font-body-sm text-body-sm text-primary hover:text-primary-container transition-colors" href="#">Forgot password?</a>
-</div>
-<button class="w-full bg-primary-container hover:bg-inverse-primary text-white font-headline-md text-headline-md uppercase tracking-tight py-4 rounded-lg transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg mt-8 cursor-pointer" type="submit">
-                        Authenticate
-                        <span class="material-symbols-outlined">arrow_forward</span>
+
+<button class="w-full bg-primary-container hover:bg-inverse-primary text-white font-headline-md text-sm uppercase tracking-tight py-3 rounded-lg transition-all transform hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-lg cursor-pointer" type="submit">
+    Launch SupplyChain.AI Workspace
+    <span class="material-symbols-outlined text-sm">arrow_forward</span>
 </button>
 </form>
 </div>

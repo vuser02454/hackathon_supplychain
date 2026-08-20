@@ -189,6 +189,70 @@
                 </div>
             </div>
 
+            <!-- 🚀 60-Second New User Onboarding Tour Banner -->
+            <div id="sc-onboarding-banner" class="bg-gradient-to-r from-[#122131] via-[#0d1c2d] to-[#1c2b3c] rounded-2xl border border-[#ff5c35]/40 p-5 shadow-2xl space-y-4 relative animate-fade-in">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-[#ff5c35]/20 border border-[#ff5c35]/50 flex items-center justify-center text-[#ff5c35] shadow-lg">
+                            <span class="material-symbols-outlined text-2xl">rocket_launch</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-headline-md text-base font-extrabold text-white">Welcome to SupplyChain.AI — 60-Second Quick Start</h3>
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold">INTERACTIVE DEMO</span>
+                            </div>
+                            <p class="text-xs text-secondary mt-0.5">Test the complete autonomous closed-loop intelligence in 3 simple steps.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="window.simulateStockoutDemo()" class="px-4 py-2 rounded-xl bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-[#ff5c35]/25 active:scale-95 transition-all">
+                            <span class="material-symbols-outlined text-sm">bolt</span>
+                            <span>1. Run Stockout Demo</span>
+                        </button>
+                        <button onclick="window.openUserGuideModal()" class="px-3.5 py-2 rounded-xl bg-[#1c2b3c] hover:bg-[#273647] text-white font-bold text-xs flex items-center gap-1.5 transition-all">
+                            <span class="material-symbols-outlined text-sm text-[#7bd0ff]">menu_book</span>
+                            <span>Platform Guide</span>
+                        </button>
+                        <button onclick="document.getElementById('sc-onboarding-banner').remove()" class="w-8 h-8 rounded-lg bg-[#1c2b3c] text-[#8992a8] hover:text-white flex items-center justify-center transition-colors" title="Dismiss">
+                            <span class="material-symbols-outlined text-sm">close</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3 Quick Step Visual Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div class="p-3 rounded-xl bg-[#0b1622]/80 border border-[#273647] hover:border-[#ff5c35]/60 transition-colors">
+                        <div class="flex items-center gap-2 text-xs font-bold text-white mb-1">
+                            <span class="w-5 h-5 rounded-full bg-[#ff5c35] text-[#5a0e00] flex items-center justify-center font-mono text-[11px] font-black">1</span>
+                            <span>Simulate Stockout Alert</span>
+                        </div>
+                        <p class="text-[11px] text-[#8992a8] leading-snug">
+                            Drops avocados below critical safety threshold and sends real-time email notification.
+                        </p>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-[#0b1622]/80 border border-[#273647] hover:border-[#7bd0ff]/60 transition-colors">
+                        <div class="flex items-center gap-2 text-xs font-bold text-white mb-1">
+                            <span class="w-5 h-5 rounded-full bg-[#7bd0ff] text-[#002d45] flex items-center justify-center font-mono text-[11px] font-black">2</span>
+                            <span>AI 8-Factor Sourcing</span>
+                        </div>
+                        <p class="text-[11px] text-[#8992a8] leading-snug">
+                            Evaluates candidate suppliers across cost, speed, OTIF, defect, carbon & SPoF diversification.
+                        </p>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-[#0b1622]/80 border border-[#273647] hover:border-emerald-500/60 transition-colors">
+                        <div class="flex items-center gap-2 text-xs font-bold text-white mb-1">
+                            <span class="w-5 h-5 rounded-full bg-emerald-400 text-[#00391d] flex items-center justify-center font-mono text-[11px] font-black">3</span>
+                            <span>Approve PO & Settle</span>
+                        </div>
+                        <p class="text-[11px] text-[#8992a8] leading-snug">
+                            Dispatches PO, captures Razorpay payment, and updates supplier Trust Score automatically.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Global Map & Telemetry Visual -->
             <div class="relative rounded-2xl overflow-hidden border border-outline-variant/40 bg-surface-container shadow-2xl h-80 md:h-96 group">
                 <img src="global_supply_map.jpg" alt="Global Supply Telemetry" class="w-full h-full object-cover opacity-80 group-hover:scale-[1.01] transition-transform duration-700"/>

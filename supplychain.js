@@ -948,12 +948,41 @@
       }
     }
 
+    window.quickSignIn = async function(email, name, role) {
+      const currentUser = window.SupplyChainState.get('user') || DEFAULT_STATE.user;
+      currentUser.authenticated = true;
+      currentUser.email = email;
+      currentUser.name = name;
+      if (role) currentUser.role = role;
+      window.SupplyChainState.set('user', currentUser);
+
+      try {
+        const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+        await fetch(`${apiBase}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: 'password123' })
+        });
+      } catch (e) {
+        console.warn('Quick login sync notice:', e);
+      }
+
+      window.showToast('Workspace Ready', `Authenticated as ${name}. Launching Dashboard...`, 'success');
+      setTimeout(() => {
+        window.location.href = 'dashboard.html?onboarding=true';
+      }, 400);
+    };
+
     const handleLogin = async function (e) {
       if (e) e.preventDefault();
-      const currentEmail = emailInput && emailInput.value ? emailInput.value.trim() : 'admin@enterprise.com';
+      const currentEmail = emailInput && emailInput.value ? emailInput.value.trim() : 'a.vance@supplychain.ai';
+      const nameInput = document.getElementById('name');
+      const currentName = nameInput && nameInput.value ? nameInput.value.trim() : 'Alexander Vance';
+      
       const currentUser = window.SupplyChainState.get('user') || DEFAULT_STATE.user;
       currentUser.authenticated = true;
       if (currentEmail) currentUser.email = currentEmail;
+      if (currentName) currentUser.name = currentName;
       window.SupplyChainState.set('user', currentUser);
 
       // Sync user profile to backend so low-stock alerts automatically target this email
@@ -968,10 +997,10 @@
         console.warn('Backend login sync note:', err);
       }
 
-      window.showToast('Authentication Successful', `Welcome back, ${currentUser.name || 'Alexander Vance'}. Accessing Global Telemetry...`, 'success');
+      window.showToast('Authentication Successful', `Welcome, ${currentName}. Accessing Global Telemetry...`, 'success');
       setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 600);
+        window.location.href = 'dashboard.html?onboarding=true';
+      }, 500);
     };
 
     const forms = document.querySelectorAll('form');
