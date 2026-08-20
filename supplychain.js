@@ -2521,10 +2521,230 @@
 
   window.initProfilePageLogic = initProfilePage;
 
+  // --- 11. INTERACTIVE USER ONBOARDING & GUIDES (MOBILE & DESKTOP) ---
+  function injectGlobalUserGuide() {
+    if (document.getElementById('sc-user-guide-modal')) return;
+
+    // 1. Floating Help / Quick Guide Button
+    const btn = document.createElement('button');
+    btn.id = 'sc-guide-trigger-btn';
+    btn.className = 'fixed bottom-6 left-6 z-[9990] flex items-center gap-2 px-3.5 py-2.5 rounded-full bg-[#122131]/90 hover:bg-[#1c2b3c] border border-[#ff5c35]/40 text-[#d4e4fa] hover:text-white text-xs font-bold shadow-xl shadow-[#ff5c35]/15 backdrop-blur-md transition-all active:scale-95 cursor-pointer';
+    btn.innerHTML = `
+      <span class="material-symbols-outlined text-[#ff5c35] text-lg animate-pulse">help_outline</span>
+      <span class="hidden sm:inline">Platform Guide</span>
+      <span class="inline sm:hidden">Guide</span>
+    `;
+    btn.onclick = () => window.openUserGuideModal();
+    document.body.appendChild(btn);
+
+    // 2. Interactive Guide Modal Container
+    const modal = document.createElement('div');
+    modal.id = 'sc-user-guide-modal';
+    modal.className = 'fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 overflow-y-auto animate-fade-in';
+    modal.innerHTML = `
+      <div class="relative w-full max-w-3xl bg-[#0b1622] border border-[#273647] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="p-5 border-b border-[#273647] flex items-center justify-between bg-[#122131]/60">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-[#ff5c35]/20 border border-[#ff5c35]/40 flex items-center justify-center text-[#ff5c35]">
+              <span class="material-symbols-outlined text-xl">menu_book</span>
+            </div>
+            <div>
+              <h3 class="text-lg font-black text-white geist tracking-wide flex items-center gap-2">
+                SupplyChain.AI — Interactive User Guide
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#ff5c35]/20 text-[#ff5c35] font-mono font-bold">Mobile & Desktop</span>
+              </h3>
+              <p class="text-xs text-[#8992a8]">Step-by-step walkthrough to master platform workflows on any screen.</p>
+            </div>
+          </div>
+          <button onclick="window.closeUserGuideModal()" class="p-1.5 rounded-lg text-[#8992a8] hover:text-white hover:bg-[#1c2b3c] transition-colors">
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-[#273647] bg-[#0d1c2d] px-4 gap-2 overflow-x-auto">
+          <button id="guide-tab-btn-desktop" onclick="window.switchGuideTab('desktop')" class="py-3 px-4 text-xs font-bold text-[#ff5c35] border-b-2 border-[#ff5c35] flex items-center gap-1.5 whitespace-nowrap transition-all">
+            <span class="material-symbols-outlined text-base">laptop_mac</span> 💻 Desktop Experience
+          </button>
+          <button id="guide-tab-btn-mobile" onclick="window.switchGuideTab('mobile')" class="py-3 px-4 text-xs font-bold text-[#8992a8] border-b-2 border-transparent hover:text-white flex items-center gap-1.5 whitespace-nowrap transition-all">
+            <span class="material-symbols-outlined text-base">smartphone</span> 📱 Mobile Experience
+          </button>
+          <button id="guide-tab-btn-workflows" onclick="window.switchGuideTab('workflows')" class="py-3 px-4 text-xs font-bold text-[#8992a8] border-b-2 border-transparent hover:text-white flex items-center gap-1.5 whitespace-nowrap transition-all">
+            <span class="material-symbols-outlined text-base">bolt</span> ⚡ Key Workflows
+          </button>
+        </div>
+
+        <!-- Tab Content Body -->
+        <div class="p-6 overflow-y-auto space-y-6 text-[#d4e4fa] text-xs leading-relaxed flex-1">
+          
+          <!-- TAB 1: DESKTOP -->
+          <div id="guide-content-desktop" class="space-y-4">
+            <div class="bg-[#122131]/70 border border-[#273647] rounded-xl p-4 space-y-2">
+              <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#ff5c35] text-base">desktop_windows</span>
+                Desktop Interface Navigation
+              </h4>
+              <p class="text-[#bec6e0]">Navigate using the sticky left sidebar for instant jumping between core command portals:</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+                <div class="bg-[#0b1622] p-3 rounded-lg border border-[#273647]">
+                  <strong class="text-white flex items-center gap-1.5"><span class="material-symbols-outlined text-[#7bd0ff] text-sm">dashboard</span> Executive Dashboard</strong>
+                  <p class="text-[11px] text-[#8992a8] mt-1">High-level KPI telemetry in ₹ INR, in-transit cargo, and real-time logistics map node hotspots.</p>
+                </div>
+                <div class="bg-[#0b1622] p-3 rounded-lg border border-[#273647]">
+                  <strong class="text-white flex items-center gap-1.5"><span class="material-symbols-outlined text-[#ff5c35] text-sm">psychology</span> AI Demand Insights</strong>
+                  <p class="text-[11px] text-[#8992a8] mt-1">Historical 90-day velocity telemetry, Profit vs Loss forecast, and Incumbent vs Trusted vendor switching.</p>
+                </div>
+                <div class="bg-[#0b1622] p-3 rounded-lg border border-[#273647]">
+                  <strong class="text-white flex items-center gap-1.5"><span class="material-symbols-outlined text-emerald-400 text-sm">inventory_2</span> Inventory & Stockout</strong>
+                  <p class="text-[11px] text-[#8992a8] mt-1">Multi-hub warehouse balances. Click <code class="text-white bg-[#1c2b3c] px-1 py-0.5 rounded">Restock</code> to trigger 1-click PO drafts.</p>
+                </div>
+                <div class="bg-[#0b1622] p-3 rounded-lg border border-[#273647]">
+                  <strong class="text-white flex items-center gap-1.5"><span class="material-symbols-outlined text-purple-400 text-sm">account_balance_wallet</span> Payments & Escrow</strong>
+                  <p class="text-[11px] text-[#8992a8] mt-1">Multi-rail Razorpay settlement ledger, milestone escrow fund locking & automated release.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-[#122131]/70 border border-[#273647] rounded-xl p-4">
+              <h5 class="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-amber-400 text-sm">keyboard</span>
+                Pro Tips for Desktop Power Users:
+              </h5>
+              <ul class="list-disc list-inside space-y-1.5 text-[#bec6e0]">
+                <li>Click the <strong>Copilot Pill</strong> on the right to open the Gemini RAG AI Chatbot anytime.</li>
+                <li>Click your <strong>Avatar</strong> in the top right to customize your photo, phone number, and sync with Supabase.</li>
+                <li>Hover over waypoints on the global logistics map to inspect active cargo status.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- TAB 2: MOBILE -->
+          <div id="guide-content-mobile" class="hidden space-y-4">
+            <div class="bg-[#122131]/70 border border-[#273647] rounded-xl p-4 space-y-3">
+              <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#ff5c35] text-base">touch_app</span>
+                Mobile Touch & Gesture Controls
+              </h4>
+              <p class="text-[#bec6e0]">Designed with bottom-accessible touch targets and responsive drawers:</p>
+              
+              <div class="space-y-2">
+                <div class="flex items-start gap-3 bg-[#0b1622] p-3 rounded-lg border border-[#273647]">
+                  <span class="w-6 h-6 rounded-full bg-[#ff5c35]/20 text-[#ff5c35] flex items-center justify-center font-bold text-xs shrink-0">1</span>
+                  <div>
+                    <strong class="text-white">Bottom Navigation Bar</strong>
+                    <p class="text-[11px] text-[#8992a8] mt-0.5">Quickly switch between Dashboard, Orders, Inventory, and Approvals without stretching your thumb.</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 bg-[#0b1622] p-3 rounded-lg border border-[#273647]">
+                  <span class="w-6 h-6 rounded-full bg-[#ff5c35]/20 text-[#ff5c35] flex items-center justify-center font-bold text-xs shrink-0">2</span>
+                  <div>
+                    <strong class="text-white">Hamburger Menu (Top Left)</strong>
+                    <p class="text-[11px] text-[#8992a8] mt-0.5">Tap the menu icon to open the full navigation drawer, access Profile settings, and view Supplier scorecards.</p>
+                  </div>
+                </div>
+                <div class="flex items-start gap-3 bg-[#0b1622] p-3 rounded-lg border border-[#273647]">
+                  <span class="w-6 h-6 rounded-full bg-[#ff5c35]/20 text-[#ff5c35] flex items-center justify-center font-bold text-xs shrink-0">3</span>
+                  <div>
+                    <strong class="text-white">Swipeable Vendor Cards</strong>
+                    <p class="text-[11px] text-[#8992a8] mt-0.5">On the AI Demand Insights page, tap either vendor radio card to instantly switch suppliers before drafting your restock PO.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: CORE WORKFLOWS -->
+          <div id="guide-content-workflows" class="hidden space-y-4">
+            <div class="bg-[#122131]/70 border border-[#273647] rounded-xl p-4 space-y-3">
+              <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-[#ff5c35] text-base">account_tree</span>
+                End-to-End Autonomous Sourcing Cycle
+              </h4>
+              
+              <div class="space-y-3">
+                <div class="p-3 rounded-lg bg-[#0b1622] border border-[#273647] flex items-start gap-3">
+                  <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold shrink-0 mt-0.5">STEP 1</span>
+                  <div>
+                    <strong class="text-white">AI Surge Detection & Vendor Choice</strong>
+                    <p class="text-[11px] text-[#8992a8] mt-0.5">Go to <a href="ai-insights.html" class="text-[#ff5c35] underline font-bold">AI Demand Insights</a>. Review the 90-day purchase pattern, verify projected profit (+₹42,800), and choose between Incumbent vs Top-Rated Partner.</p>
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-lg bg-[#0b1622] border border-[#273647] flex items-start gap-3">
+                  <span class="px-2 py-0.5 rounded bg-[#ff5c35]/20 text-[#ff5c35] font-mono text-[10px] font-bold shrink-0 mt-0.5">STEP 2</span>
+                  <div>
+                    <strong class="text-white">1-Click Restock PO Drafting</strong>
+                    <p class="text-[11px] text-[#8992a8] mt-0.5">Click <strong>"Accept & Draft PO"</strong>. The PO is generated with the selected vendor's unit pricing and sent to the Restock Authorization Desk.</p>
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-lg bg-[#0b1622] border border-[#273647] flex items-start gap-3">
+                  <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-mono text-[10px] font-bold shrink-0 mt-0.5">STEP 3</span>
+                  <div>
+                    <strong class="text-white">Executive Authorization & Escrow Lock</strong>
+                    <p class="text-[11px] text-[#8992a8] mt-0.5">In <a href="restock-approval.html" class="text-[#ff5c35] underline font-bold">Restock Approvals</a>, authorize the order. Funds lock safely in milestone escrow in <a href="payments.html" class="text-[#ff5c35] underline font-bold">Payments</a> until verified receipt.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-[#273647] bg-[#122131]/60 flex items-center justify-between">
+          <div class="text-[11px] text-[#8992a8]">
+            Currency: <span class="text-white font-mono font-bold">₹ INR</span> | Synced with <span class="text-white font-mono font-bold">Supabase</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="window.closeUserGuideModal()" class="px-4 py-2 rounded-xl bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold text-xs transition-all shadow-md">
+              Got It, Let's Go!
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    window.openUserGuideModal = function() {
+      modal.classList.replace('hidden', 'flex');
+    };
+
+    window.closeUserGuideModal = function() {
+      modal.classList.replace('flex', 'hidden');
+      localStorage.setItem('sc_guide_viewed', 'true');
+    };
+
+    window.switchGuideTab = function(tabKey) {
+      ['desktop', 'mobile', 'workflows'].forEach(k => {
+        const btnEl = document.getElementById(`guide-tab-btn-${k}`);
+        const contentEl = document.getElementById(`guide-content-${k}`);
+        if (k === tabKey) {
+          if (btnEl) {
+            btnEl.className = 'py-3 px-4 text-xs font-bold text-[#ff5c35] border-b-2 border-[#ff5c35] flex items-center gap-1.5 whitespace-nowrap transition-all';
+          }
+          if (contentEl) contentEl.classList.remove('hidden');
+        } else {
+          if (btnEl) {
+            btnEl.className = 'py-3 px-4 text-xs font-bold text-[#8992a8] border-b-2 border-transparent hover:text-white flex items-center gap-1.5 whitespace-nowrap transition-all';
+          }
+          if (contentEl) contentEl.classList.add('hidden');
+        }
+      });
+    };
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initUnifiedUI);
+    document.addEventListener('DOMContentLoaded', () => {
+      initUnifiedUI();
+      injectGlobalUserGuide();
+    });
   } else {
     initUnifiedUI();
+    injectGlobalUserGuide();
   }
 
 })();
+
