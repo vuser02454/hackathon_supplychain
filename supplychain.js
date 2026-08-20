@@ -12,8 +12,8 @@
     user: {
       name: 'Alexander Vance',
       role: 'VP of Global Logistics',
-      email: 'vvijwal01@gmail.com',
-      phone: '+91 98765 43210',
+      email: 'a.vance@supplychain.ai',
+      phone: '+1 (555) 382-9014',
       dept: 'Global Autonomous Supply Logistics (ORD-3)',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       authenticated: true
@@ -2877,7 +2877,11 @@
       try {
         const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
         window.showToast('Scanning Telemetry', 'Checking inventory records against safety stock thresholds...', 'ai');
-        const res = await fetch(`${apiBase}/api/inventory/check-stock`, { method: 'POST' });
+        const activeUser = window.SupplyChainState.get('user') || DEFAULT_STATE.user;
+        const userEmail = activeUser && activeUser.email ? encodeURIComponent(activeUser.email) : '';
+        const userName = activeUser && activeUser.name ? encodeURIComponent(activeUser.name) : '';
+        const queryParams = userEmail ? `?recipient_email=${userEmail}&recipient_name=${userName}` : '';
+        const res = await fetch(`${apiBase}/api/inventory/check-stock${queryParams}`, { method: 'POST' });
         if (res.ok) {
           const data = await res.json();
           window.renderAlertsList();

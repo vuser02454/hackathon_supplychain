@@ -144,19 +144,22 @@ def resolve_alert(alert_id: str, db: Session = Depends(get_db)):
 @router.post("/check-stock", response_model=StockCheckResponse)
 def check_stock_and_notify(
     organization_id: str = "ORG-DEFAULT",
+    recipient_email: Optional[str] = None,
+    recipient_name: Optional[str] = None,
     send_emails: bool = True,
     db: Session = Depends(get_db)
 ):
     """
     Scans inventory against safety thresholds, prevents duplicate emails, 
-    dispatches emails for new low/critical events, and marks replenished items as resolved.
+    dispatches emails to the logged-in user's email for new low/critical events, 
+    and marks replenished items as resolved.
     """
     items = db.query(InventoryModel).all()
-    user = db.query(UserModel).first()
-    import os
-    configured_email = os.getenv("ALERT_RECIPIENT_EMAIL") or os.getenv("USER_EMAIL") or os.getenv("RESEND_TO_EMAIL")
-    user_email = configured_email or (user.email if user and "@" in user.email and "supplychain.ai" not in user.email else "vvijwal01@gmail.com")
-    user_name = user.name if user else "Alexander Vance"
+    user = db.query(UserModel).filter(UserModel.organization_id == organization_id).first() or db.query(UserModel).first()
+    
+    # Dynamically resolve recipient from active user or database record
+    user_email = recipient_email or (user.email if user and user.email else "user@supplychain.ai")
+    user_name = recipient_name or (user.name if user and user.name else "Supply Chain Lead")
 
     normal_count = 0
     low_count = 0

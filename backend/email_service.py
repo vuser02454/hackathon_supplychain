@@ -18,8 +18,8 @@ def send_low_stock_email(
     resend_api_key = os.getenv("RESEND_API_KEY")
     email_from = os.getenv("EMAIL_FROM", "SupplyChain.AI Alerts <onboarding@resend.dev>")
     
-    # Priority recipient: ALERT_RECIPIENT_EMAIL / USER_EMAIL / user_email / vvijwal01@gmail.com
-    target_email = os.getenv("ALERT_RECIPIENT_EMAIL") or os.getenv("USER_EMAIL") or (user_email if user_email and "@" in user_email and "supplychain.ai" not in user_email else "vvijwal01@gmail.com")
+    # Recipient dynamically passed from logged-in user or database record
+    target_email = user_email if user_email and "@" in user_email else "user@supplychain.ai"
     
     product_name = inventory_item.get("name", "Item")
     sku = inventory_item.get("sku", alert_data.get("sku", "SKU-UNKNOWN"))
