@@ -3960,10 +3960,16 @@
     try {
       window.showToast('Triggering Stockout Simulation', 'Simulating warehouse inventory drop below critical threshold...', 'ai');
       const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+      const activeUser = window.SupplyChainState.get('user') || DEFAULT_STATE.user;
       const res = await fetch(`${apiBase}/api/inventory/simulate-stockout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sku: sku, simulated_stock: 14 })
+        body: JSON.stringify({
+          sku: sku,
+          simulated_stock: 14,
+          recipient_email: activeUser && activeUser.email ? activeUser.email : 'a.vance@supplychain.ai',
+          recipient_name: activeUser && activeUser.name ? activeUser.name : 'Alexander Vance'
+        })
       });
 
       if (res.ok) {

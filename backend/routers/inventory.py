@@ -26,7 +26,7 @@ from backend.schemas import (
     PerishableWasteRiskResponse,
     PerishableWasteRiskItem
 )
-from backend.email_service import send_low_stock_email
+from backend.email_service import send_low_stock_email, get_sent_emails_history
 from backend.ai_service import ai_service
 from backend.supabase_service import sync_inventory_alert_to_supabase, resolve_alert_in_supabase
 
@@ -151,6 +151,55 @@ def resolve_alert(alert_id: str, db: Session = Depends(get_db)):
     db.commit()
     resolve_alert_in_supabase(alert_id)
     return {"status": "success", "id": alert_id, "resolved_at": alert.resolved_at.isoformat()}
+
+@router.get("/alerts/sent-emails")
+def get_sent_emails():
+    """
+    Returns ledger of all dispatched low stock alert emails.
+    """
+    return get_sent_emails_history()
+
+@router.post("/alerts/test-email")
+def test_dispatch_email(
+    target_email: str = Query("user@supplychain.ai", description="Email address to test"),
+    target_name: str = Query("Supply Chain Officer", description="Recipient display name"),
+    db: Session = Depends(get_db)
+):
+    """
+    Directly triggers a test low-stock email alert to any specified email address.
+    """
+    item = db.query(InventoryModel).first()
+    item_dict = {
+        "sku": item.sku if item else "SKU-AVO-303",
+        "name": item.name if item else "Fresh Hass Avocados (Box of 24)",
+        "warehouse": item.warehouse if item else "Munich Fresh Facility",
+        "on_hand": 18,
+        "min_safety": 350
+    }
+    alert_dict = {
+        "sku": item_dict["sku"],
+        "current_stock": 18,
+        "reorder_point": 350,
+        "severity": "CRITICAL"
+    }
+    ai_rec = {
+        "recommended_quantity": 520,
+        "recommended_supplier": "Apex Organic Produce",
+        "days_until_stockout": 1.8,
+        "ai_reasoning": "Critical stock depletion triggered by regional surge. Immediate dual-source replenishment dispatched."
+    }
+    result = send_low_stock_email(
+        user_email=target_email,
+        user_name=target_name,
+        inventory_item=item_dict,
+        alert_data=alert_dict,
+        ai_recommendation=ai_rec
+    )
+    return {
+        "status": "success",
+        "result": result,
+        "message": f"Test email dispatched to {target_email}"
+    }
 
 @router.post("/check-stock", response_model=StockCheckResponse)
 def check_stock_and_notify(
@@ -380,8 +429,14 @@ def simulate_stockout_for_demo(
     item.status_color = "error"
     db.commit()
 
-    # Trigger stock scan & email notification
-    scan_res = check_stock_and_notify(organization_id=organization_id, send_emails=True, db=db)
+    # Trigger stock scan & email notification with dynamic recipient
+    scan_res = check_stock_and_notify(
+        organization_id=organization_id,
+        recipient_email=req.recipient_email,
+        recipient_name=req.recipient_name,
+        send_emails=True,
+        db=db
+    )
 
     # Get latest alert for this SKU
     latest_alert = db.query(InventoryAlertModel).filter(

@@ -127,9 +127,15 @@ Create a `.env` file in the root directory:
 PORT=8000
 ENVIRONMENT=production
 
-# Email Service (Resend)
+# Email Service (Resend or SMTP)
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
-SENDER_EMAIL=alerts@supplychain.ai
+EMAIL_FROM=SupplyChain.AI Alerts <onboarding@resend.dev>
+
+# Optional SMTP Settings (Gmail, SES, SendGrid, etc.)
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=your-email@gmail.com
+# SMTP_PASS=your-app-password
 
 # Cloud Database (Supabase)
 SUPABASE_URL=https://jqkgavoculcubjqwgsrae.supabase.co

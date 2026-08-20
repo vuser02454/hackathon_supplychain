@@ -332,6 +332,8 @@ class StockCheckResponse(BaseModel):
 class SimulateStockoutRequest(BaseModel):
     sku: str
     simulated_stock: Optional[int] = 18
+    recipient_email: Optional[str] = None
+    recipient_name: Optional[str] = None
 
 class SupplierMatrixItem(BaseModel):
     supplier_id: str
