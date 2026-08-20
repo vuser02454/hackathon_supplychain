@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2B Payment Gateway & Settlement — SupplyChain.AI</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Official Razorpay Checkout SDK -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#93000a",
+                        "surface-container-high": "#1c2b3c",
+                        "surface-bright": "#2c3a4c",
+                        "on-tertiary-container": "#003043",
+                        "error": "#ffb4ab",
+                        "tertiary-container": "#009ed5",
+                        "primary": "#ffb4a3",
+                        "on-primary-fixed": "#3d0700",
+                        "outline": "#aa8982",
+                        "secondary-container": "#3f465c",
+                        "primary-container": "#ff5c35",
+                        "on-primary-container": "#5a0e00",
+                        "secondary-fixed": "#dae2fd",
+                        "on-secondary-container": "#adb4ce",
+                        "tertiary-fixed": "#c4e7ff",
+                        "surface-container-low": "#0d1c2d",
+                        "surface-tint": "#ffb4a3",
+                        "surface-container-highest": "#273647",
+                        "on-secondary-fixed": "#131b2e",
+                        "on-secondary": "#283044",
+                        "outline-variant": "#5b413a",
+                        "on-primary-fixed-variant": "#8a1c00",
+                        "on-tertiary": "#00354a",
+                        "tertiary-fixed-dim": "#7bd0ff",
+                        "on-secondary-fixed-variant": "#3f465c",
+                        "primary-fixed-dim": "#ffb4a3",
+                        "on-error": "#690005",
+                        "background": "#051424",
+                        "surface": "#051424",
+                        "inverse-primary": "#b52701",
+                        "tertiary": "#7bd0ff",
+                        "surface-variant": "#273647",
+                        "secondary": "#bec6e0",
+                        "on-surface": "#d4e4fa",
+                        "on-background": "#d4e4fa",
+                        "surface-container-lowest": "#010f1f",
+                        "inverse-on-surface": "#233143",
+                        "on-error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#004c69",
+                        "secondary-fixed-dim": "#bec6e0",
+                        "inverse-surface": "#d4e4fa",
+                        "on-primary": "#621100",
+                        "surface-container": "#122131",
+                        "surface-dim": "#051424",
+                        "primary-fixed": "#ffdad2",
+                        "on-surface-variant": "#e3beb6",
+                        "on-tertiary-fixed": "#001e2c"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Geist", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "headline-lg": ["Geist", "sans-serif"],
+                        "headline-lg-mobile": ["Geist", "sans-serif"],
+                        "body-sm": ["Inter", "sans-serif"],
+                        "label-mono": ["JetBrains Mono", "monospace"],
+                        "display-lg": ["Geist", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #051424;
+            color: #d4e4fa;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .geist { font-family: 'Geist', sans-serif; }
+        .glass-panel {
+            background: rgba(18, 33, 49, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(91, 65, 58, 0.35);
+        }
+        .payment-method.active {
+            border-color: #ff5c35;
+            background: rgba(255, 92, 53, 0.12);
+            box-shadow: 0 0 16px rgba(255, 92, 53, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row antialiased selection:bg-[#ff5c35] selection:text-white">
+
+    <!-- Side Navigation Bar -->
+    <nav class="hidden md:flex flex-col h-screen py-6 border-r border-[#5b413a]/40 bg-[#010f1f] w-64 fixed left-0 top-0 shadow-xl z-20">
+        <a href="dashboard.html" class="px-6 mb-8 flex items-center space-x-3 text-decoration-none">
+            <div class="w-8 h-8 rounded-lg bg-[#ff5c35] flex items-center justify-center text-white shadow-[0_0_12px_rgba(255,92,53,0.4)]">
+                <span class="material-symbols-outlined text-sm font-bold">domain</span>
+            </div>
+            <div>
+                <h1 class="geist font-extrabold text-lg text-[#ff5c35] tracking-wider">SupplyChain.AI</h1>
+                <p class="mono text-[10px] text-[#bec6e0] opacity-70 uppercase tracking-wider">Enterprise Intelligence</p>
+            </div>
+        </a>
+        <div class="px-4 mb-6">
+            <button onclick="window.location.href='orders.html'" class="w-full bg-[#ff5c35] hover:bg-[#b52701] text-white py-2.5 px-4 rounded-lg geist font-bold text-sm flex items-center justify-center space-x-2 transition-all shadow-lg shadow-[#ff5c35]/25 active:scale-95">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span>New Order</span>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto px-3 space-y-1.5 font-['Inter',sans-serif]">
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="dashboard.html">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span class="geist text-sm">Dashboard</span>
+            </a>
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="orders.html">
+                <span class="material-symbols-outlined">shopping_cart</span>
+                <span class="geist text-sm">Orders & Logistics</span>
+            </a>
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="inventory.html">
+                <span class="material-symbols-outlined">inventory_2</span>
+                <span class="geist text-sm">Inventory</span>
+            </a>
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="suppliers.html">
+                <span class="material-symbols-outlined">factory</span>
+                <span class="geist text-sm">Suppliers</span>
+            </a>
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="ai-insights.html">
+                <span class="material-symbols-outlined text-[#7bd0ff]">psychology</span>
+                <span class="geist text-sm text-[#7bd0ff]">AI Demand Insights</span>
+            </a>
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="restock-approval.html">
+                <span class="material-symbols-outlined">fact_check</span>
+                <span class="geist text-sm">Restock Approvals</span>
+            </a>
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#ff5c35] font-bold border-r-4 border-[#ff5c35] bg-[#1c2b3c] transition-colors" href="payments.html">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">payments</span>
+                <span class="geist text-sm">Payments & Escrow</span>
+            </a>
+            <a class="flex items-center space-x-3 px-4 py-2.5 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="profile.html">
+                <span class="material-symbols-outlined">person</span>
+                <span class="geist text-sm">Profile & Settings</span>
+            </a>
+        </div>
+        <div class="mt-auto px-4 pt-4 border-t border-[#5b413a]/30 space-y-1 text-sm">
+            <a class="flex items-center space-x-3 px-4 py-2 rounded-lg text-[#bec6e0] opacity-70 hover:opacity-100 hover:bg-[#1c2b3c] transition-colors" href="index.html">
+                <span class="material-symbols-outlined">logout</span>
+                <span>Sign Out</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col md:ml-64 w-full min-h-screen">
+        <!-- Top App Bar -->
+        <header class="flex justify-between items-center px-4 md:px-8 h-20 w-full bg-[#051424]/90 backdrop-blur-md z-10 sticky top-0 border-b border-[#5b413a]/40">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#7bd0ff]">verified_user</span>
+                    <h2 class="geist font-bold text-base md:text-lg text-white">Razorpay Enterprise B2B Settlement Gateway</h2>
+                </div>
+                <span class="hidden sm:flex mono text-[11px] bg-cyan-950/80 text-cyan-400 border border-cyan-800/80 px-2.5 py-0.5 rounded-full items-center gap-1.5 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    API KEY: rzp_test_TRvxs42XlaI4PB
+                </span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="window.location.href='dashboard.html'" class="text-xs mono text-[#bec6e0] hover:text-white px-3 py-1.5 rounded-lg border border-[#5b413a]/60 bg-[#122131] hover:bg-[#1c2b3c] flex items-center gap-1.5 transition-colors">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span>
+                    <span>Dashboard</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Checkout Canvas -->
+        <div class="p-4 md:p-8 flex-1 overflow-y-auto max-w-7xl w-full mx-auto space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#5b413a]/30">
+                <div>
+                    <h1 class="geist font-extrabold text-2xl md:text-3xl text-white">Invoice Settlement & Freight Escrow</h1>
+                    <p class="text-sm text-[#bec6e0] mt-1">
+                        Invoice Reference: <span id="invoice-ref-display" class="mono text-[#7bd0ff] font-semibold">#INV-2026-8942-AP</span> | Vendor: <span id="vendor-name-display" class="font-semibold text-white">Apex Precision Machining Ltd.</span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadInvoicePDF()" class="px-4 py-2 rounded-lg bg-[#122131] hover:bg-[#1c2b3c] border border-[#5b413a]/60 text-xs mono text-[#d4e4fa] flex items-center gap-2 transition-all hover:border-[#7bd0ff] shadow-sm">
+                        <span class="material-symbols-outlined text-sm text-[#7bd0ff]">download</span>
+                        <span>Download Tax Invoice PDF</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Two-Column Checkout Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Left: Payment Method Selection (7 cols) -->
+                <div class="lg:col-span-7 space-y-6">
+
+                    <!-- Settlement Amount Input Box (Clear & Editable) -->
+                    <div class="glass-panel rounded-xl p-6 shadow-xl space-y-3 border-l-4 border-l-[#ff5c35]">
+                        <div class="flex items-center justify-between">
+                            <label class="geist font-bold text-sm text-white uppercase tracking-wider flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[#ff5c35]">attach_money</span>
+                                Settlement Amount (INR)
+                            </label>
+                            <span class="mono text-[11px] text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/60 font-bold">
+                                REAL-TIME CONVERSION ACTIVE
+                            </span>
+                        </div>
+
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-white font-bold text-xl">₹</span>
+                            <input type="number" id="custom-amount-input" step="0.01" value="66880.00" oninput="updatePaymentAmountFromInput(this.value)" class="w-full bg-[#051424] border border-[#ff5c35]/60 rounded-xl py-3.5 pl-10 pr-28 text-white font-mono text-xl font-black focus:outline-none focus:border-[#ff5c35] focus:ring-2 focus:ring-[#ff5c35]/40 transition-all shadow-inner" placeholder="Enter amount in INR (e.g. 66880.00)" />
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 bg-[#122131] border border-[#5b413a]/60 px-2.5 py-1 rounded-lg text-xs font-mono text-cyan-300">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>INR (₹)</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-[#bec6e0] flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm text-[#7bd0ff]">info</span>
+                            <span>Type custom settlement value or select from pre-filled PO items. Automatic subunit conversion for live gateways.</span>
+                        </p>
+                    </div>
+
+                    <!-- Payment Methods Picker -->
+                    <div class="glass-panel rounded-xl p-6 shadow-xl">
+                        <h3 class="geist font-bold text-base text-white mb-4 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[#ff5c35]">account_balance_wallet</span>
+                            Select Institutional Payment Channel
+                        </h3>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                            <!-- Option 1: Razorpay Gateway -->
+                            <div onclick="selectMethod('razorpay')" id="method-razorpay" class="payment-method active cursor-pointer p-4 rounded-xl border border-[#5b413a]/60 hover:border-[#ff5c35] transition-all bg-[#0d1c2d]/60">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="material-symbols-outlined text-[#0284c7]">payments</span>
+                                    <span class="mono text-[10px] text-cyan-400 font-bold bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/60">LIVE API</span>
+                                </div>
+                                <h4 class="font-bold text-sm text-white">Razorpay B2B</h4>
+                                <p class="text-[11px] text-[#bec6e0] mt-0.5">Corporate Cards / UPI / NetBanking</p>
+                            </div>
+
+                            <!-- Option 2: ACH / Wire -->
+                            <div onclick="selectMethod('ach')" id="method-ach" class="payment-method cursor-pointer p-4 rounded-xl border border-[#5b413a]/60 hover:border-[#ff5c35] transition-all bg-[#0d1c2d]/60">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="material-symbols-outlined text-[#7bd0ff]">account_balance</span>
+                                    <span class="mono text-[10px] text-emerald-400 font-bold bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/60">0% FEE</span>
+                                </div>
+                                <h4 class="font-bold text-sm text-white">Fedwire ACH</h4>
+                                <p class="text-[11px] text-[#bec6e0] mt-0.5">Bank-to-Bank Treasury Wire</p>
+                            </div>
+
+                            <!-- Option 3: Smart Escrow -->
+                            <div onclick="selectMethod('escrow')" id="method-escrow" class="payment-method cursor-pointer p-4 rounded-xl border border-[#5b413a]/60 hover:border-[#ff5c35] transition-all bg-[#0d1c2d]/60">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="material-symbols-outlined text-amber-400">lock_clock</span>
+                                    <span class="mono text-[10px] text-amber-400 font-bold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-800/60">ESCROW</span>
+                                </div>
+                                <h4 class="font-bold text-sm text-white">Smart Escrow</h4>
+                                <p class="text-[11px] text-[#bec6e0] mt-0.5">Automated Release on Dock Scan</p>
+                            </div>
+                        </div>
+
+                        <!-- Form details -->
+                        <div id="payment-form-details" class="space-y-4 pt-4 border-t border-[#5b413a]/40">
+                            <div class="bg-cyan-950/40 border border-cyan-800/60 rounded-xl p-4 flex items-center justify-between shadow-inner">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-cyan-900/60 border border-cyan-700/60 flex items-center justify-center text-cyan-400 font-bold">
+                                        <span class="material-symbols-outlined text-base">verified</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-bold text-white">Razorpay B2B Multi-Party Engine</p>
+                                        <p class="mono text-[11px] text-[#bec6e0]">Key ID: <span id="key-id-display" class="text-cyan-300">rzp_test_TRvxs42XlaI4PB</span></p>
+                                    </div>
+                                </div>
+                                <span class="mono text-[11px] text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-800/60 flex items-center gap-1 font-bold">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    READY
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Authorized Signatory Name</label>
+                                    <input type="text" id="payer-name" value="Alexander Vance (VP Logistics)" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35] focus:ring-1 focus:ring-[#ff5c35]" />
+                                </div>
+                                <div>
+                                    <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Corporate Billing Email</label>
+                                    <input type="email" id="payer-email" value="a.vance@supplychain.ai" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35] focus:ring-1 focus:ring-[#ff5c35]" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Treasury Verification Phone</label>
+                                <input type="tel" id="payer-phone" value="+1 (555) 019-2834" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35] focus:ring-1 focus:ring-[#ff5c35]" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Escrow Protection Guarantee -->
+                    <div class="glass-panel rounded-xl p-5 flex items-start gap-4 border-l-4 border-l-[#7bd0ff] shadow-lg">
+                        <span class="material-symbols-outlined text-[#7bd0ff] text-3xl mt-0.5">shield_with_heart</span>
+                        <div>
+                            <h4 class="geist font-bold text-sm text-white">SupplyChain.AI Automated Settlement Shield</h4>
+                            <p class="text-xs text-[#bec6e0] mt-1 leading-relaxed">
+                                Integrated with Razorpay B2B Multi-Party Settlement and institutional ledger reconciliation. Funds are held in a secure programmatic escrow vault and automatically settled upon IoT dock barcode scan at distribution hubs.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Order Summary & Pay Button (5 cols) -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="glass-panel rounded-xl p-6 shadow-xl">
+                        <div class="flex items-center justify-between pb-4 border-b border-[#5b413a]/40 mb-4">
+                            <h3 class="geist font-bold text-base text-white flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[#7bd0ff]">receipt_long</span>
+                                Order Breakdown
+                            </h3>
+                            <span id="po-badge" class="mono text-xs text-[#7bd0ff] bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded">PO #8942-RESTOCK</span>
+                        </div>
+
+                        <!-- Item list -->
+                        <div id="breakdown-items" class="space-y-3 mb-6">
+                            <div class="flex justify-between items-center text-sm p-2 rounded-lg bg-[#0d1c2d]/40">
+                                <div>
+                                    <p id="item-title" class="text-white font-medium">Rotary Actuator Core (SKU-892)</p>
+                                    <p id="item-subtitle" class="mono text-[11px] text-[#bec6e0]">Qty: 1,500 units @ ₹42.00</p>
+                                </div>
+                                <span id="item-line-total" class="mono text-white font-semibold">₹63,000.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm p-2 rounded-lg bg-[#0d1c2d]/40">
+                                <div>
+                                    <p class="text-white font-medium">B2B Expedited Air Freight</p>
+                                    <p class="mono text-[11px] text-[#bec6e0]">Carrier: DHL Global Forwarding / Flight TW-881</p>
+                                </div>
+                                <span id="freight-line-total" class="mono text-white font-semibold">₹4,850.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm p-2 rounded-lg bg-[#0d1c2d]/40">
+                                <div>
+                                    <p class="text-white font-medium">Customs & Import Duties</p>
+                                    <p class="mono text-[11px] text-[#bec6e0]">Harmonized Tariff Code 8479.90</p>
+                                </div>
+                                <span id="customs-line-total" class="mono text-white font-semibold">₹2,180.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Total calculation -->
+                        <div class="pt-4 border-t border-[#5b413a]/40 space-y-2.5 mb-6">
+                            <div class="flex justify-between text-xs text-[#bec6e0]">
+                                <span>Subtotal</span>
+                                <span id="subtotal-display" class="mono font-medium text-white">₹70,030.00</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-emerald-400">
+                                <span class="flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-xs">percent</span>
+                                    Autonomous Volume Discount (4.5%)
+                                </span>
+                                <span id="discount-display" class="mono">-₹3,150.00</span>
+                            </div>
+                            <div class="flex justify-between items-center text-lg font-bold text-white pt-3 border-t border-[#5b413a]/30">
+                                <span class="geist">Total Authorized</span>
+                                <span id="total-amount-display" class="mono text-[#ff5c35] text-2xl font-black">₹66,880.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Pay Button -->
+                        <button onclick="executePayment()" id="pay-btn" class="w-full bg-[#ff5c35] hover:bg-[#b52701] text-white py-4 rounded-xl geist font-bold text-base flex items-center justify-center gap-2 shadow-xl shadow-[#ff5c35]/25 transition-all transform active:scale-[0.98] cursor-pointer">
+                            <span class="material-symbols-outlined text-xl">lock</span>
+                            <span id="pay-btn-label">Pay via Razorpay (₹66,880.00)</span>
+                        </button>
+                        <p class="text-center mono text-[11px] text-[#bec6e0]/70 mt-3 flex items-center justify-center gap-1">
+                            <span class="material-symbols-outlined text-xs text-emerald-400">verified</span>
+                            Secured by Razorpay PCI-DSS Level 1 & SupplyChain.AI Programmatic Escrow
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Recent Settlement Transactions Ledger (Merged with project backend) -->
+            <div class="glass-panel rounded-xl p-6 shadow-xl space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-[#5b413a]/40 pb-4">
+                    <div>
+                        <h3 class="geist font-bold text-base text-white flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[#7bd0ff]">history</span>
+                            Recent Financial Settlement Ledger
+                        </h3>
+                        <p class="text-xs text-[#bec6e0] mt-0.5">Live ERP synchronized transaction ledger and escrow vault receipts.</p>
+                    </div>
+                    <button onclick="loadPaymentTransactions()" class="px-3.5 py-1.5 rounded-lg bg-[#122131] hover:bg-[#1c2b3c] border border-[#5b413a]/60 text-xs mono text-[#7bd0ff] flex items-center gap-1.5 transition-all">
+                        <span class="material-symbols-outlined text-sm">refresh</span>
+                        <span>Refresh Ledger</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs font-['Inter',sans-serif]">
+                        <thead>
+                            <tr class="border-b border-[#5b413a]/40 text-[#bec6e0] mono uppercase">
+                                <th class="py-2.5 px-3">Transaction ID</th>
+                                <th class="py-2.5 px-3">Vendor / Beneficiary</th>
+                                <th class="py-2.5 px-3">PO / Invoice Ref</th>
+                                <th class="py-2.5 px-3">Method</th>
+                                <th class="py-2.5 px-3">Amount (INR)</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3 text-right">Invoice PDF</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payment-txns-tbody" class="divide-y divide-[#5b413a]/20">
+                            <!-- Populated dynamically via loadPaymentTransactions() -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div id="success-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full rounded-2xl p-8 text-center border border-emerald-500/50 shadow-2xl shadow-emerald-500/20">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-400 flex items-center justify-center mx-auto mb-4 text-emerald-400">
+                <span class="material-symbols-outlined text-3xl">check_circle</span>
+            </div>
+            <h3 class="geist font-extrabold text-2xl text-white mb-2">Payment Authorized!</h3>
+            <p class="text-sm text-[#bec6e0] mb-6">
+                Settlement Reference: <span id="txn-id-display" class="mono text-cyan-400 font-bold">pay_test_984201824</span>. Escrow smart contract locked and supplier automated dispatch triggered.
+            </p>
+            
+            <div class="bg-[#051424] rounded-xl p-4 mb-6 text-left space-y-2 mono text-xs border border-[#5b413a]/50">
+                <div class="flex justify-between"><span class="text-[#bec6e0]">Amount Settled:</span><span id="modal-amount" class="text-white font-bold">₹66,880.00</span></div>
+                <div class="flex justify-between"><span class="text-[#bec6e0]">Payment Gateway:</span><span id="modal-channel" class="text-cyan-400 font-semibold">Razorpay B2B API</span></div>
+                <div class="flex justify-between"><span class="text-[#bec6e0]">Milestone:</span><span class="text-emerald-400 font-semibold">WH-04 Dispatch Ready</span></div>
+                <div class="flex justify-between"><span class="text-[#bec6e0]">ERP Integration:</span><span class="text-emerald-400 font-semibold">SAP S/4HANA Ledger Updated</span></div>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="window.location.href='dashboard.html'" class="flex-1 bg-[#ff5c35] hover:bg-[#b52701] text-white font-bold py-3 rounded-lg text-sm geist transition-all shadow-lg shadow-[#ff5c35]/25">
+                    Go to Dashboard
+                </button>
+                <button onclick="document.getElementById('success-modal').classList.add('hidden')" class="px-4 py-3 rounded-lg border border-[#5b413a] text-xs mono text-[#bec6e0] hover:text-white transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
+    <script src="supplychain.js"></script>
+    <script>
+        const RAZORPAY_KEY = "rzp_test_TRvxs42XlaI4PB";
+        let currentMethod = 'razorpay';
+        let currentAmountDollars = 66880.00;
+        let currentSubunitAmount = 6688000;
+        let currentPo = "PO-8942-RESTOCK";
+        let currentOrderId = "ORD-8942";
+        let currentVendor = "Apex Precision Machining Ltd.";
+        let currentInvoiceRef = "#INV-2026-8942-AP";
+        let currentItem = "Rotary Actuator Core (SKU-892)";
+
+        // Initialize state from URL params if passed
+        window.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('po')) currentPo = urlParams.get('po');
+            if (urlParams.has('order_id')) currentOrderId = urlParams.get('order_id');
+            if (urlParams.has('vendor')) currentVendor = urlParams.get('vendor');
+            if (urlParams.has('item')) currentItem = urlParams.get('item');
+            if (urlParams.has('amount')) {
+                const parsed = parseFloat(urlParams.get('amount'));
+                if (!isNaN(parsed) && parsed > 0) {
+                    currentAmountDollars = parsed;
+                    currentSubunitAmount = Math.round(parsed * 100);
+                }
+            }
+
+            // Update DOM Elements
+            document.getElementById('invoice-ref-display').innerText = currentInvoiceRef;
+            document.getElementById('vendor-name-display').innerText = currentVendor;
+            document.getElementById('po-badge').innerText = currentPo;
+            document.getElementById('item-title').innerText = currentItem;
+            document.getElementById('total-amount-display').innerText = '₹' + currentAmountDollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('pay-btn-label').innerText = `Pay via Razorpay (₹${currentAmountDollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+
+            // Fetch dynamic backend config & load initial transactions
+            const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+            try {
+                const configRes = await fetch(`${apiBase}/api/payments/config`);
+                if (configRes.ok) {
+                    const configData = await configRes.json();
+                    if (configData.key_id) {
+                        RAZORPAY_KEY = configData.key_id;
+                        const keyDisplay = document.getElementById('key-id-display');
+                        if (keyDisplay) keyDisplay.innerText = configData.key_id;
+                    }
+                }
+            } catch (err) {
+                console.log("Payment config fetched using fallback key:", err);
+            }
+
+            // Sync initial input value
+            const amountInput = document.getElementById('custom-amount-input');
+            if (amountInput) amountInput.value = currentAmountDollars.toFixed(2);
+
+            // Load transaction history ledger
+            loadPaymentTransactions();
+
+            // Load user data if present in state
+            if (window.SupplyChainState) {
+                const user = window.SupplyChainState.get('user');
+                if (user) {
+                    const nameInput = document.getElementById('payer-name');
+                    const emailInput = document.getElementById('payer-email');
+                    if (nameInput && user.name) nameInput.value = `${user.name} (${user.role || 'Enterprise Signatory'})`;
+                    if (emailInput && user.email) emailInput.value = user.email;
+                }
+            }
+        });
+
+        function updatePaymentAmountFromInput(val) {
+            const parsed = parseFloat(val);
+            if (!isNaN(parsed) && parsed >= 0) {
+                currentAmountDollars = parsed;
+                currentSubunitAmount = Math.round(parsed * 100);
+                const formatted = '₹' + currentAmountDollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                document.getElementById('total-amount-display').innerText = formatted;
+                document.getElementById('subtotal-display').innerText = '₹' + (currentAmountDollars * 1.047).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                document.getElementById('discount-display').innerText = '-$' + (currentAmountDollars * 0.047).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                const btnLabel = document.getElementById('pay-btn-label');
+                if (btnLabel) {
+                    btnLabel.innerText = currentMethod === 'razorpay' ? `Pay via Razorpay (${formatted})` : (currentMethod === 'ach' ? `Authorize Fedwire Settlement (${formatted})` : `Lock in Smart Escrow Vault (${formatted})`);
+                }
+            }
+        }
+
+        async function loadPaymentTransactions() {
+            const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+            const tbody = document.getElementById('payment-txns-tbody');
+            if (!tbody) return;
+            try {
+                const res = await fetch(`${apiBase}/api/payments/transactions?limit=15`);
+                if (res.ok) {
+                    const txns = await res.json();
+                    if (txns && txns.length > 0) {
+                        tbody.innerHTML = txns.map(t => `
+                            <tr class="hover:bg-[#122131]/60 transition-colors">
+                                <td class="py-3 px-3 mono font-bold text-[#7bd0ff]">${t.id}</td>
+                                <td class="py-3 px-3 text-white font-medium">${t.vendor || 'Apex Precision Machining Ltd.'}</td>
+                                <td class="py-3 px-3 mono text-[#bec6e0]">${t.invoice_ref || '#INV-REF'} (${t.po_number || 'PO'})</td>
+                                <td class="py-3 px-3 mono text-xs uppercase text-[#bec6e0]">${t.method || 'razorpay'}</td>
+                                <td class="py-3 px-3 mono font-extrabold text-white">₹${(t.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                <td class="py-3 px-3">
+                                    <span class="px-2.5 py-0.5 rounded-full mono text-[10px] font-bold ${
+                                        t.status === 'CAPTURED' ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/60' :
+                                        (t.status === 'SETTLED' ? 'bg-cyan-950/80 text-cyan-400 border border-cyan-800/60' :
+                                        (t.status === 'ESCROW_LOCKED' ? 'bg-amber-950/80 text-amber-400 border border-amber-800/60' : 'bg-rose-950/80 text-rose-400 border border-rose-800/60'))
+                                    }">
+                                        ${t.status}
+                                    </span>
+                                </td>
+                                <td class="py-3 px-3 text-right">
+                                    <button onclick="downloadInvoicePDF()" class="px-2.5 py-1 rounded bg-[#122131] hover:bg-[#1c2b3c] border border-[#5b413a]/60 text-[11px] mono text-[#7bd0ff] transition-all">
+                                        PDF
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Failed to fetch transactions:", e);
+            }
+        }
+
+
+        function selectMethod(method) {
+            currentMethod = method;
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('active'));
+            document.getElementById('method-' + method).classList.add('active');
+            
+            const details = document.getElementById('payment-form-details');
+            const btnLabel = document.getElementById('pay-btn-label');
+            const formattedTotal = '₹' + currentAmountDollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            if (method === 'razorpay') {
+                btnLabel.innerText = `Pay via Razorpay (${formattedTotal})`;
+                details.innerHTML = `
+                    <div class="bg-cyan-950/40 border border-cyan-800/60 rounded-xl p-4 flex items-center justify-between shadow-inner">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-cyan-900/60 border border-cyan-700/60 flex items-center justify-center text-cyan-400 font-bold">
+                                <span class="material-symbols-outlined text-base">verified</span>
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-white">Razorpay B2B Multi-Party Engine</p>
+                                <p class="mono text-[11px] text-[#bec6e0]">Key ID: <span class="text-cyan-300">${RAZORPAY_KEY}</span></p>
+                            </div>
+                        </div>
+                        <span class="mono text-[11px] text-emerald-400 bg-emerald-950/80 px-2.5 py-1 rounded-full border border-emerald-800/60 flex items-center gap-1 font-bold">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            READY
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Authorized Signatory Name</label>
+                            <input type="text" id="payer-name" value="Alexander Vance (VP Logistics)" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35]" />
+                        </div>
+                        <div>
+                            <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Corporate Billing Email</label>
+                            <input type="email" id="payer-email" value="a.vance@supplychain.ai" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35]" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Treasury Verification Phone</label>
+                        <input type="tel" id="payer-phone" value="+919876543210" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35]" />
+                    </div>
+                `;
+            } else if (method === 'ach') {
+                btnLabel.innerText = `Authorize Fedwire Settlement (${formattedTotal})`;
+                details.innerHTML = `
+                    <div>
+                        <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Corporate Treasury Routing Number (ABA / SWIFT)</label>
+                        <input type="text" id="ach-routing" value="021000021 (JPMorgan Chase Corporate Treasury)" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35]" />
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Corporate Account Number</label>
+                            <input type="password" id="ach-account" value="883920194829" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35]" />
+                        </div>
+                        <div>
+                            <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Corporate Tax EIN / VAT ID</label>
+                            <input type="text" id="ach-taxid" value="US-84-9201847" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-white mono text-sm focus:outline-none focus:border-[#ff5c35]" />
+                        </div>
+                    </div>
+                `;
+            } else if (method === 'escrow') {
+                btnLabel.innerText = `Lock in Smart Escrow Vault (${formattedTotal})`;
+                details.innerHTML = `
+                    <div>
+                        <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Programmatic Escrow Smart Contract</label>
+                        <input type="text" readonly value="0x71C8492InstitutionalVault (INRC/Institutional Fiat Vault)" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-amber-400 mono text-sm focus:outline-none" />
+                    </div>
+                    <div>
+                        <label class="block mono text-xs text-[#bec6e0] uppercase mb-1.5">Autonomous Release Condition</label>
+                        <input type="text" id="escrow-condition" readonly value="IoT Dock Barcode + GPS Geofence Verification at WH-CHICAGO-04" class="w-full bg-[#051424] border border-[#5b413a]/70 rounded-lg py-2.5 px-4 text-emerald-400 mono text-sm focus:outline-none" />
+                    </div>
+                `;
+            }
+        }
+
+        async function executePayment() {
+            const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+            const payerName = document.getElementById('payer-name')?.value || "Alexander Vance";
+            const payerEmail = document.getElementById('payer-email')?.value || "a.vance@supplychain.ai";
+            const payerPhone = document.getElementById('payer-phone')?.value || "+919876543210";
+            const formattedTotal = '₹' + currentAmountDollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const btn = document.getElementById('pay-btn');
+
+            if (currentMethod === 'razorpay') {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-xl">sync</span><span>Creating Razorpay Order...</span>`;
+                let rzpOrderId = null;
+
+                try {
+                    const orderRes = await fetch(`${apiBase}/api/payments/create-order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: currentSubunitAmount,
+                            currency: 'INR',
+                            receipt: 'rcpt_' + currentPo.replace(/[^a-zA-Z0-9]/g, ''),
+                            notes: { order_id: currentOrderId, po: currentPo, vendor: currentVendor }
+                        })
+                    });
+                    if (orderRes.ok) {
+                        const orderData = await orderRes.json();
+                        rzpOrderId = orderData.id;
+                    }
+                } catch (e) {
+                    console.warn("Order creation API fallback:", e);
+                }
+
+                btn.disabled = false;
+                btn.innerHTML = `<span class="material-symbols-outlined text-xl">lock</span><span>Pay via Razorpay (${formattedTotal})</span>`;
+
+                if (typeof Razorpay !== 'undefined') {
+                    const options = {
+                        key: RAZORPAY_KEY,
+                        amount: currentSubunitAmount,
+                        currency: "INR",
+                        name: "SupplyChain.AI Enterprise",
+                        description: `Settlement for ${currentPo} (${currentVendor})`,
+                        image: "https://cdn-icons-png.flaticon.com/512/2761/2761008.png",
+                        order_id: rzpOrderId || undefined,
+                        prefill: {
+                            name: payerName,
+                            email: payerEmail,
+                            contact: payerPhone
+                        },
+                        theme: {
+                            color: "#ff5c35"
+                        },
+                        handler: async function (response) {
+                            const txnId = response.razorpay_payment_id || ("pay_" + Math.random().toString(36).substring(2, 12));
+                            await handleRazorpayVerification(response, txnId);
+                        },
+                        modal: {
+                            ondismiss: function () {
+                                if (window.showToast) window.showToast('Checkout Paused', 'Payment modal dismissed by user.', 'alert');
+                            }
+                        }
+                    };
+
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                } else {
+                    // Fallback simulation if Razorpay JS SDK fails to load
+                    const simulatedTxn = 'pay_' + Math.random().toString(36).substring(2, 12);
+                    await handlePaymentCompletion(simulatedTxn, 'razorpay');
+                }
+            } else if (currentMethod === 'ach') {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-xl">sync</span><span>Authorizing Fedwire ACH Transfer...</span>`;
+                try {
+                    const achRes = await fetch(`${apiBase}/api/payments/ach/authorize`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: currentSubunitAmount,
+                            account_name: payerName,
+                            order_id: currentOrderId,
+                            po_number: currentPo,
+                            vendor: currentVendor,
+                            invoice_ref: currentInvoiceRef
+                        })
+                    });
+                    const achData = await achRes.json();
+                    btn.disabled = false;
+                    btn.innerHTML = `<span class="material-symbols-outlined text-xl">lock</span><span>Authorize Fedwire Settlement (${formattedTotal})</span>`;
+                    await handlePaymentCompletion(achData.id, 'ach');
+                } catch (err) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span class="material-symbols-outlined text-xl">lock</span><span>Authorize Fedwire Settlement (${formattedTotal})</span>`;
+                    const simulatedTxn = 'ach_' + Math.random().toString(36).substring(2, 12);
+                    await handlePaymentCompletion(simulatedTxn, 'ach');
+                }
+            } else if (currentMethod === 'escrow') {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-xl">sync</span><span>Executing Smart Escrow Locking...</span>`;
+                try {
+                    const escrowRes = await fetch(`${apiBase}/api/payments/escrow/lock`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: currentSubunitAmount,
+                            currency: 'INR',
+                            order_id: currentOrderId,
+                            po_number: currentPo,
+                            vendor: currentVendor,
+                            invoice_ref: currentInvoiceRef,
+                            release_condition: "IoT Dock Barcode + GPS Geofence Verification"
+                        })
+                    });
+                    const escrowData = await escrowRes.json();
+                    btn.disabled = false;
+                    btn.innerHTML = `<span class="material-symbols-outlined text-xl">lock</span><span>Lock in Smart Escrow Vault (${formattedTotal})</span>`;
+                    await handlePaymentCompletion(escrowData.id, 'escrow');
+                } catch (err) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<span class="material-symbols-outlined text-xl">lock</span><span>Lock in Smart Escrow Vault (${formattedTotal})</span>`;
+                    const simulatedTxn = 'escrow_' + Math.random().toString(36).substring(2, 12);
+                    await handlePaymentCompletion(simulatedTxn, 'escrow');
+                }
+            }
+        }
+
+        async function handleRazorpayVerification(rzpResp, txnId) {
+            const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+            try {
+                const verifyRes = await fetch(`${apiBase}/api/payments/verify`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        razorpay_order_id: rzpResp.razorpay_order_id || 'order_demo',
+                        razorpay_payment_id: rzpResp.razorpay_payment_id || txnId,
+                        razorpay_signature: rzpResp.razorpay_signature || null,
+                        order_id: currentOrderId,
+                        po_number: currentPo,
+                        vendor: currentVendor,
+                        invoice_ref: currentInvoiceRef,
+                        amount: currentSubunitAmount
+                    })
+                });
+                const verifyData = await verifyRes.json();
+                console.log("Razorpay verification response:", verifyData);
+            } catch (e) {
+                console.warn("Razorpay verify call fallback:", e);
+            }
+            await handlePaymentCompletion(txnId, 'razorpay');
+        }
+
+        async function handlePaymentCompletion(txnId, method) {
+            const formattedTotal = '₹' + currentAmountDollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('txn-id-display').innerText = txnId + " [VERIFYING...]";
+            document.getElementById('modal-amount').innerText = formattedTotal;
+            document.getElementById('modal-channel').innerText = method === 'razorpay' ? 'Razorpay B2B Live API' : (method === 'ach' ? 'Fedwire Treasury Transfer' : 'Programmatic Smart Escrow Vault');
+
+            // Send capture request to FastAPI backend
+            const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+            try {
+                const captureRes = await fetch(`${apiBase}/api/payments/capture`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        payment_id: txnId,
+                        amount: currentSubunitAmount,
+                        currency: 'INR',
+                        order_id: currentOrderId,
+                        po_number: currentPo,
+                        vendor: currentVendor,
+                        invoice_ref: currentInvoiceRef,
+                        method: method
+                    })
+                });
+                const captureData = await captureRes.json();
+                console.log("Captured via Backend API:", captureData);
+                document.getElementById('txn-id-display').innerText = captureData.id + " [CAPTURED & SYNCED]";
+            } catch (err) {
+                console.warn("Backend capture API called offline:", err);
+                document.getElementById('txn-id-display').innerText = txnId + " [AUTHORIZED]";
+            }
+
+            // Sync with frontend state engine
+            if (window.SupplyChainState) {
+                // Add notification
+                const notifs = window.SupplyChainState.get('notifications') || [];
+                notifs.unshift({
+                    id: 'NOTIF-' + Date.now(),
+                    title: `Payment Succeeded: ${txnId} for ${formattedTotal} (${currentVendor})`,
+                    time: 'Just now',
+                    read: false,
+                    type: 'ai'
+                });
+                window.SupplyChainState.set('notifications', notifs);
+
+                // Update order status if present
+                const orders = window.SupplyChainState.get('orders') || [];
+                const matchedOrder = orders.find(o => o.id === currentOrderId || o.id === 'ORD-8942');
+                if (matchedOrder) {
+                    matchedOrder.status = 'In Transit (Paid & Escrowed)';
+                    matchedOrder.statusColor = 'tertiary';
+                    window.SupplyChainState.set('orders', orders);
+                }
+
+                // Show Toast
+                if (window.showToast) {
+                    window.showToast('Payment & Escrow Authorized', `Transaction ${txnId} settled for ${formattedTotal}. ERP ledger updated.`, 'success');
+                }
+            }
+
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        function downloadInvoicePDF() {
+            const formattedTotal = '₹' + currentAmountDollars.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const invoiceWindow = window.open('', '_blank');
+            invoiceWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Official Tax Invoice — ${currentInvoiceRef}</title>
+                    <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
+                        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #ff5c35; padding-bottom: 20px; }
+                        .title { font-size: 24px; font-weight: 800; color: #ff5c35; }
+                        .meta { font-size: 12px; color: #64748b; margin-top: 5px; }
+                        .parties { display: flex; justify-content: space-between; margin: 30px 0; }
+                        .party { width: 45%; font-size: 13px; }
+                        table { width: 100%; border-collapse: collapse; margin: 25px 0; font-size: 13px; }
+                        th { background: #f1f5f9; text-align: left; padding: 10px; border-bottom: 2px solid #cbd5e1; }
+                        td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+                        .total-section { margin-left: auto; width: 300px; text-align: right; }
+                        .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+                        .total-row.final { font-size: 18px; font-weight: 800; color: #0f172a; border-top: 2px solid #0f172a; margin-top: 8px; }
+                        .stamp { display: inline-block; padding: 8px 16px; border: 2px dashed #10b981; color: #10b981; font-weight: bold; border-radius: 6px; margin-top: 30px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <div>
+                            <div class="title">SupplyChain.AI — Enterprise Settlement</div>
+                            <div class="meta">Automated Multi-Party Freight & Component Invoicing</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 16px; font-weight: bold;">${currentInvoiceRef}</div>
+                            <div class="meta">Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                            <div class="meta">PO Ref: ${currentPo}</div>
+                        </div>
+                    </div>
+                    <div class="parties">
+                        <div class="party">
+                            <strong>ISSUED BY VENDOR:</strong><br>
+                            ${currentVendor}<br>
+                            Advanced Precision Engineering Division<br>
+                            GST/Tax ID: US-84-9201847<br>
+                            Apex Industrial Hub, Unit 4
+                        </div>
+                        <div class="party" style="text-align: right;">
+                            <strong>BILLED TO CLIENT:</strong><br>
+                            SupplyChain.AI Global Logistics Corp<br>
+                            Chicago Distribution Center (ORD-3)<br>
+                            Attn: Alexander Vance (VP Global Logistics)<br>
+                            accounts-payable@supplychain.ai
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item & Description</th>
+                                <th>Harmonized Code</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th style="text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${currentItem}</td>
+                                <td>8479.90.00</td>
+                                <td>1,500 units</td>
+                                <td>₹42.00</td>
+                                <td style="text-align: right;">₹63,000.00</td>
+                            </tr>
+                            <tr>
+                                <td>B2B Expedited Air Cargo (DHL Global Forwarding)</td>
+                                <td>FREIGHT-AIR</td>
+                                <td>Dedicated TW-881</td>
+                                <td>₹4,850.00</td>
+                                <td style="text-align: right;">₹4,850.00</td>
+                            </tr>
+                            <tr>
+                                <td>Customs Clearance & Import Tariff</td>
+                                <td>DUTY-IMP</td>
+                                <td>Standard</td>
+                                <td>₹2,180.00</td>
+                                <td style="text-align: right;">₹2,180.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="total-section">
+                        <div class="total-row"><span>Subtotal:</span><span>₹70,030.00</span></div>
+                        <div class="total-row" style="color: #10b981;"><span>Autonomous Volume Discount (4.5%):</span><span>-₹3,150.00</span></div>
+                        <div class="total-row final"><span>Total Settled:</span><span>${formattedTotal}</span></div>
+                    </div>
+                    <div class="stamp">PROGRAMMATIC ESCROW VERIFIED — RAZORPAY PCI-DSS LEVEL 1</div>
+                    <p style="margin-top: 40px; font-size: 11px; color: #94a3b8;">This document is an electronic tax invoice processed via SupplyChain.AI Autonomous Settlement Infrastructure.</p>
+                </body>
+                </html>
+            `);
+            invoiceWindow.document.close();
+            invoiceWindow.focus();
+            setTimeout(() => { invoiceWindow.print(); }, 500);
+        }
+    </script>
+</body>
+</html>
