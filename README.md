@@ -19,7 +19,7 @@ AI STOCKOUT PREDICTION (Days to Stockout & Velocity Calculation)
       ↓
 AI SUPPLIER COMPARISON (Multi-Attribute Utility Function Matrix)
       ↓
-AI RECOMMENDATION & EXPLAINABILITY (Explicit Points Breakdown: Cost +18, Speed +24, OTIF +22, Defect +17, Stockout +20)
+AI RECOMMENDATION & EXPLAINABILITY (Explicit Points: Cost +18, Speed +24, OTIF +22, Defect +17, Stockout +20)
       ↓
 HUMAN APPROVAL SAFEGUARD (Review, Modify Quantity, Authorize PO)
       ↓
@@ -40,6 +40,21 @@ AI USES OUTCOME FOR FUTURE SOURCING DECISIONS (Closed-Loop Feedback)
 
 ---
 
+## 🎬 8-Step End-to-End Demo Script
+
+| Step | Action | Platform Reaction | Closed-Loop Milestone |
+| :--- | :--- | :--- | :--- |
+| **1. Stock Scan** | Click `[Scan Telemetry]` on Dashboard or Inventory | Evaluates safety buffers across warehouses | Critical stock breaches identified |
+| **2. Dynamic Alert** | Background notification engine runs | Dispatches email directly to the logged-in user's email address | Bell lights up with pulsating badge |
+| **3. AI Sourcing Matrix** | Click `Review AI Sourcing & Decision Matrix` | Generates 5-vendor comparison with factor scores (`+18`, `+24`, `+22`, `+17`, `+20`) | Risk reduction: `82% → 14%`, Savings: `₹48,600` |
+| **4. Human Authorization** | Adjust quantity & click `[Approve Restock & Create PO]` | Drafts Purchase Order `#PO-2026-XXXX` (`APPROVED / PAYMENT_PENDING`) | Human-in-the-loop compliance locked |
+| **5. Razorpay Settlement** | Complete test payment or Lock Escrow in `₹ INR` | Verifies HMAC signature & records ERP ledger | PO marked `PAID`, shipment spawned |
+| **6. Shipment Telemetry** | Navigate to `/orders` & click `[Advance to In-Transit]` | Moves status from `SHIPMENT_CREATED` (25%) to `IN_TRANSIT` (68%) | Real-time cargo checkpoint recorded |
+| **7. Dock Delivery QA** | Click `[Mark Delivered & Record Outcome]` | Inputs dock receipt: 500 units, 0 defects, 2 days lead time | Order marked `DELIVERED` (100%) |
+| **8. Supplier Learning** | Navigate to `/suppliers` or view scorecards | Supplier Trust Score recalculates: `84 → 91 ↑ (+7 pts)` | Future AI restock plans prioritize vendor |
+
+---
+
 ## 🌟 Functional Modules & Core Features
 
 ### 1. 🚨 Low Stock Alerts & Dynamic User Email Notification System (`/api/inventory/alerts`)
@@ -50,7 +65,7 @@ AI USES OUTCOME FOR FUTURE SOURCING DECISIONS (Closed-Loop Feedback)
 - **Top Navigation Bell & Alert Center:** Live pulsating badge count on the topbar bell with slide-over drawer displaying alert telemetry, email dispatch status, and 1-click AI restock reviews.
 - **Automated Resolution:** Open alerts are automatically resolved when inventory is replenished above safety thresholds.
 
-### 2. 🧠 AI Multi-Supplier Decision Matrix & Explainability
+### 2. 🧠 AI Multi-Supplier Decision Matrix & Explainability (`backend/ai_service.py`)
 - **Multi-Attribute Utility Function:** Evaluates candidate suppliers across 5 normalized dimensions:
   - **Unit Pricing:** Normalized in Indian Rupees (`₹ INR`).
   - **Delivery Speed:** Lead time vs. projected stockout window.
@@ -93,6 +108,62 @@ AI USES OUTCOME FOR FUTURE SOURCING DECISIONS (Closed-Loop Feedback)
   - **OpenRouter API & Google Gemini:** Neural demand forecasting and interactive RAG Copilot.
   - **Groq API Acceleration:** High-speed LLM inference (`openai/gpt-oss-120b`).
 - **Payment Processing:** Razorpay Enterprise Test Gateway in Indian Rupees (`₹ INR`).
+
+---
+
+## 🔑 Environment Variables Reference
+
+Create a `.env` file in the root directory:
+
+```env
+# Application Server
+PORT=8000
+ENVIRONMENT=production
+
+# Email Service (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
+SENDER_EMAIL=alerts@supplychain.ai
+
+# Cloud Database (Supabase)
+SUPABASE_URL=https://jqkgavoculcubjqwgsrae.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+# Payment Gateway (Razorpay)
+RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxxx
+RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxxxxxxxxxx
+
+# AI & LLM Inference Engines
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxx
+GEMINI_API_KEY=AIzaxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+---
+
+## 🚀 Quickstart & Local Installation
+
+### Prerequisites
+- Python 3.10+
+- Modern Web Browser (Chrome, Safari, Firefox, Edge)
+
+### Setup Instructions
+```bash
+# 1. Clone repository
+git clone https://github.com/vuser02454/hackathon_supplychain.git
+cd hackathon_supplychain
+
+# 2. Set up virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Start Enterprise Server
+python main.py
+```
+
+Open your browser at: **`http://localhost:8000`**
 
 ---
 
