@@ -207,6 +207,7 @@ def check_stock_and_notify(
     recipient_email: Optional[str] = None,
     recipient_name: Optional[str] = None,
     send_emails: bool = True,
+    force_email: bool = False,
     db: Session = Depends(get_db)
 ):
     """
@@ -218,7 +219,7 @@ def check_stock_and_notify(
     user = db.query(UserModel).filter(UserModel.organization_id == organization_id).first() or db.query(UserModel).first()
     
     # Dynamically resolve recipient from active user or database record
-    user_email = recipient_email or (user.email if user and user.email else "user@supplychain.ai")
+    user_email = recipient_email or (user.email if user and user.email else "a.vance@supplychain.ai")
     user_name = recipient_name or (user.name if user and user.name else "Supply Chain Lead")
 
     normal_count = 0
@@ -267,6 +268,19 @@ def check_stock_and_notify(
                 # Update current stock and timestamp if changed
                 existing_unresolved.current_stock = on_hand
                 ai_rec = json.loads(existing_unresolved.ai_recommendation_json) if existing_unresolved.ai_recommendation_json else None
+                
+                # If force_email is requested, dispatch email directly to active user
+                if send_emails and force_email:
+                    email_result = send_low_stock_email(
+                        user_email=user_email,
+                        user_name=user_name,
+                        inventory_item={"sku": item.sku, "name": item.name, "warehouse": item.warehouse, "on_hand": on_hand, "min_safety": min_safety},
+                        alert_data={"sku": item.sku, "current_stock": on_hand, "reorder_point": min_safety, "severity": severity},
+                        ai_recommendation=ai_rec
+                    )
+                    existing_unresolved.email_sent = bool(email_result.get("success", False))
+                    db.commit()
+
                 active_alert_responses.append(InventoryAlertResponse(
                     id=existing_unresolved.id,
                     organization_id=existing_unresolved.organization_id,
@@ -435,6 +449,7 @@ def simulate_stockout_for_demo(
         recipient_email=req.recipient_email,
         recipient_name=req.recipient_name,
         send_emails=True,
+        force_email=True,
         db=db
     )
 

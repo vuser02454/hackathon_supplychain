@@ -18,8 +18,11 @@ def login(req: UserLoginRequest, db: Session = Depends(get_db)):
             role="VP of Global Grocery Logistics"
         )
         db.add(user)
-        db.commit()
-        db.refresh(user)
+    else:
+        if req.email and req.email.strip():
+            user.email = req.email.strip()
+    db.commit()
+    db.refresh(user)
     
     # Background sync to Supabase
     sync_user_to_supabase({

@@ -948,18 +948,30 @@
       }
     }
 
-    const handleLogin = function (e) {
+    const handleLogin = async function (e) {
       if (e) e.preventDefault();
-      const currentEmail = emailInput ? emailInput.value : 'admin@enterprise.com';
+      const currentEmail = emailInput && emailInput.value ? emailInput.value.trim() : 'admin@enterprise.com';
       const currentUser = window.SupplyChainState.get('user') || DEFAULT_STATE.user;
       currentUser.authenticated = true;
       if (currentEmail) currentUser.email = currentEmail;
       window.SupplyChainState.set('user', currentUser);
 
+      // Sync user profile to backend so low-stock alerts automatically target this email
+      try {
+        const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+        await fetch(`${apiBase}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentEmail, password: 'password123' })
+        });
+      } catch (err) {
+        console.warn('Backend login sync note:', err);
+      }
+
       window.showToast('Authentication Successful', `Welcome back, ${currentUser.name || 'Alexander Vance'}. Accessing Global Telemetry...`, 'success');
       setTimeout(() => {
         window.location.href = 'dashboard.html';
-      }, 700);
+      }, 600);
     };
 
     const forms = document.querySelectorAll('form');
