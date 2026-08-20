@@ -10,7 +10,8 @@ from backend.models import (
     NotificationModel,
     PaymentTransactionModel,
     InventoryAlertModel,
-    SupplierPerformanceHistoryModel
+    SupplierPerformanceHistoryModel,
+    ProductTraceabilityModel
 )
 
 def init_db_and_seed():
@@ -32,7 +33,29 @@ def init_db_and_seed():
             "ALTER TABLE approvals ADD COLUMN shipment_id VARCHAR",
             "ALTER TABLE approvals ADD COLUMN ai_explainability_json TEXT",
             "ALTER TABLE notifications ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'",
-            "ALTER TABLE payment_transactions ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'"
+            "ALTER TABLE payment_transactions ADD COLUMN organization_id VARCHAR DEFAULT 'ORG-DEFAULT'",
+            # Inventory PS7 fields
+            "ALTER TABLE inventory ADD COLUMN is_perishable BOOLEAN DEFAULT 0",
+            "ALTER TABLE inventory ADD COLUMN shelf_life_days INTEGER DEFAULT 30",
+            "ALTER TABLE inventory ADD COLUMN expiry_date VARCHAR DEFAULT '2026-11-30'",
+            "ALTER TABLE inventory ADD COLUMN waste_risk VARCHAR DEFAULT 'NORMAL'",
+            "ALTER TABLE inventory ADD COLUMN primary_supplier_id VARCHAR DEFAULT 'SUP-01'",
+            "ALTER TABLE inventory ADD COLUMN supplier_dependency_pct INTEGER DEFAULT 65",
+            "ALTER TABLE inventory ADD COLUMN alternative_suppliers_count INTEGER DEFAULT 3",
+            "ALTER TABLE inventory ADD COLUMN authenticity_risk_score INTEGER DEFAULT 8",
+            "ALTER TABLE inventory ADD COLUMN batch_id VARCHAR DEFAULT 'BATCH-2026-001'",
+            # Suppliers PS7 fields
+            "ALTER TABLE suppliers ADD COLUMN supplier_tier VARCHAR DEFAULT 'TIER_1'",
+            "ALTER TABLE suppliers ADD COLUMN supplier_size VARCHAR DEFAULT 'MID_MARKET'",
+            "ALTER TABLE suppliers ADD COLUMN sme_opportunity_score INTEGER DEFAULT 80",
+            "ALTER TABLE suppliers ADD COLUMN transport_mode VARCHAR DEFAULT 'ROAD'",
+            "ALTER TABLE suppliers ADD COLUMN distance_km FLOAT DEFAULT 450.0",
+            "ALTER TABLE suppliers ADD COLUMN carbon_emission_factor FLOAT DEFAULT 0.105",
+            "ALTER TABLE suppliers ADD COLUMN carbon_score INTEGER DEFAULT 85",
+            "ALTER TABLE suppliers ADD COLUMN estimated_co2_kg FLOAT DEFAULT 420.0",
+            "ALTER TABLE suppliers ADD COLUMN sustainability_rank VARCHAR DEFAULT 'A'",
+            "ALTER TABLE suppliers ADD COLUMN authenticity_verified BOOLEAN DEFAULT 1",
+            "ALTER TABLE suppliers ADD COLUMN parent_supplier_id VARCHAR"
         ]:
             try:
                 conn.execute(text(col_sql))
@@ -50,6 +73,7 @@ def init_db_and_seed():
             db.query(SupplierModel).delete(synchronize_session=False)
             db.query(RestockApprovalModel).delete(synchronize_session=False)
             db.query(PaymentTransactionModel).delete(synchronize_session=False)
+            db.query(ProductTraceabilityModel).delete(synchronize_session=False)
             db.commit()
         except Exception as e:
             print(f"[Seed Notice]: {e}")
@@ -192,30 +216,151 @@ def init_db_and_seed():
                 timeline_json=json.dumps(od["timeline"])
             ))
 
-        # 3. Seed Inventory
+        # 3. Seed Inventory (PS7 Resilient & Perishable parameters)
         inv_data = [
-            {"sku": "SKU-MILK-101", "name": "Fresh Organic Whole Milk (1 Gallon)", "category": "Dairy & Refrigerated", "warehouse": "Chicago Cold Hub (ORD-3)", "on_hand": 1420, "min_safety": 1200, "incoming": 500, "unit_cost": "₹4.50", "turnover": "52.4x/yr", "status": "Optimal", "status_color": "tertiary"},
-            {"sku": "SKU-AVO-303", "name": "Fresh Hass Avocados (Box of 24)", "category": "Fresh Produce", "warehouse": "Munich Fresh Facility", "on_hand": 180, "min_safety": 350, "incoming": 400, "unit_cost": "₹28.00", "turnover": "48.2x/yr", "status": "Critical Low", "status_color": "error"},
-            {"sku": "SKU-EGG-404", "name": "Farm Fresh Organic Eggs (Grade A 12-Pack)", "category": "Dairy & Poultry", "warehouse": "Austin Farm Hub", "on_hand": 4200, "min_safety": 3000, "incoming": 2000, "unit_cost": "₹4.80", "turnover": "60.8x/yr", "status": "Optimal", "status_color": "tertiary"},
-            {"sku": "SKU-BREAD-202", "name": "Whole Wheat Bread Loaves (Pack of 12)", "category": "Bakery", "warehouse": "Rotterdam Bakery Depot", "on_hand": 840, "min_safety": 800, "incoming": 1200, "unit_cost": "₹3.20", "turnover": "74.1x/yr", "status": "Warning", "status_color": "primary-container"},
-            {"sku": "SKU-OIL-505", "name": "Extra Virgin Olive Oil (1L Bottle)", "category": "Pantry Staples", "warehouse": "Seattle Grocery Center", "on_hand": 310, "min_safety": 250, "incoming": 150, "unit_cost": "₹14.50", "turnover": "18.4x/yr", "status": "Optimal", "status_color": "tertiary"},
-            {"sku": "SKU-BAN-606", "name": "Organic Cavendish Bananas (Box of 40)", "category": "Fresh Produce", "warehouse": "Tokyo Fresh Hub", "on_hand": 620, "min_safety": 900, "incoming": 0, "unit_cost": "₹18.00", "turnover": "65.9x/yr", "status": "Warning", "status_color": "primary-container"}
+            {
+                "sku": "SKU-MILK-101", "name": "Fresh Organic Whole Milk (1 Gallon)", "category": "Dairy & Refrigerated",
+                "warehouse": "Chicago Cold Hub (ORD-3)", "on_hand": 1420, "min_safety": 1200, "incoming": 500,
+                "unit_cost": "₹4.50", "turnover": "52.4x/yr", "status": "Optimal", "status_color": "tertiary",
+                "is_perishable": True, "shelf_life_days": 14, "expiry_date": "2026-10-28", "waste_risk": "NORMAL",
+                "primary_supplier_id": "SUP-01", "supplier_dependency_pct": 65, "alternative_suppliers_count": 4,
+                "authenticity_risk_score": 5, "batch_id": "BATCH-2026-MILK-01"
+            },
+            {
+                "sku": "SKU-AVO-303", "name": "Fresh Hass Avocados (Box of 24)", "category": "Fresh Produce",
+                "warehouse": "Munich Fresh Facility", "on_hand": 180, "min_safety": 350, "incoming": 400,
+                "unit_cost": "₹28.00", "turnover": "48.2x/yr", "status": "Critical Low", "status_color": "error",
+                "is_perishable": True, "shelf_life_days": 10, "expiry_date": "2026-10-24", "waste_risk": "EXPIRING_SOON",
+                "primary_supplier_id": "SUP-03", "supplier_dependency_pct": 82, "alternative_suppliers_count": 3,
+                "authenticity_risk_score": 8, "batch_id": "BATCH-2026-AVO-03"
+            },
+            {
+                "sku": "SKU-EGG-404", "name": "Farm Fresh Organic Eggs (Grade A 12-Pack)", "category": "Dairy & Poultry",
+                "warehouse": "Austin Farm Hub", "on_hand": 4200, "min_safety": 3000, "incoming": 2000,
+                "unit_cost": "₹4.80", "turnover": "60.8x/yr", "status": "Optimal", "status_color": "tertiary",
+                "is_perishable": True, "shelf_life_days": 21, "expiry_date": "2026-11-05", "waste_risk": "NORMAL",
+                "primary_supplier_id": "SUP-04", "supplier_dependency_pct": 58, "alternative_suppliers_count": 4,
+                "authenticity_risk_score": 6, "batch_id": "BATCH-2026-EGG-04"
+            },
+            {
+                "sku": "SKU-BREAD-202", "name": "Whole Wheat Bread Loaves (Pack of 12)", "category": "Bakery",
+                "warehouse": "Rotterdam Bakery Depot", "on_hand": 840, "min_safety": 800, "incoming": 1200,
+                "unit_cost": "₹3.20", "turnover": "74.1x/yr", "status": "Warning", "status_color": "primary-container",
+                "is_perishable": True, "shelf_life_days": 7, "expiry_date": "2026-10-22", "waste_risk": "WASTE_RISK",
+                "primary_supplier_id": "SUP-02", "supplier_dependency_pct": 74, "alternative_suppliers_count": 3,
+                "authenticity_risk_score": 4, "batch_id": "BATCH-2026-BREAD-02"
+            },
+            {
+                "sku": "SKU-OIL-505", "name": "Extra Virgin Olive Oil (1L Bottle)", "category": "Pantry Staples",
+                "warehouse": "Seattle Grocery Center", "on_hand": 310, "min_safety": 250, "incoming": 150,
+                "unit_cost": "₹14.50", "turnover": "18.4x/yr", "status": "Optimal", "status_color": "tertiary",
+                "is_perishable": False, "shelf_life_days": 365, "expiry_date": "2027-10-15", "waste_risk": "NORMAL",
+                "primary_supplier_id": "SUP-05", "supplier_dependency_pct": 55, "alternative_suppliers_count": 5,
+                "authenticity_risk_score": 7, "batch_id": "BATCH-2026-OIL-05"
+            },
+            {
+                "sku": "SKU-BAN-606", "name": "Organic Cavendish Bananas (Box of 40)", "category": "Fresh Produce",
+                "warehouse": "Tokyo Fresh Hub", "on_hand": 620, "min_safety": 900, "incoming": 0,
+                "unit_cost": "₹18.00", "turnover": "65.9x/yr", "status": "Warning", "status_color": "primary-container",
+                "is_perishable": True, "shelf_life_days": 8, "expiry_date": "2026-10-25", "waste_risk": "EXPIRING_SOON",
+                "primary_supplier_id": "SUP-06", "supplier_dependency_pct": 79, "alternative_suppliers_count": 3,
+                "authenticity_risk_score": 9, "batch_id": "BATCH-2026-BAN-06"
+            }
         ]
         for item in inv_data:
             db.add(InventoryModel(**item))
 
-        # 4. Seed Suppliers
+        # 4. Seed Suppliers (PS7 Tiers, Sizes, Carbon, and SME metrics)
         sup_data = [
-            {"id": "SUP-01", "name": "GreenField Dairy Farms", "location": "Shenzhen, CN", "category": "Dairy & Produce", "vetted": True, "otif": "99.4%", "defect_rate": "0.012%", "trust_score": 98, "active_contracts": 4, "lead_time_days": 3, "avatar": "factory"},
-            {"id": "SUP-02", "name": "Nordic Bakery & Flour Co.", "location": "Oslo, NO", "category": "Bakery & Grains", "vetted": True, "otif": "98.1%", "defect_rate": "0.005%", "trust_score": 96, "active_contracts": 2, "lead_time_days": 2, "avatar": "inventory_2"},
-            {"id": "SUP-03", "name": "Apex Organic Produce", "location": "Hsinchu, TW", "category": "Fresh Fruits & Veggies", "vetted": True, "otif": "96.8%", "defect_rate": "0.024%", "trust_score": 94, "active_contracts": 6, "lead_time_days": 4, "avatar": "memory"},
-            {"id": "SUP-04", "name": "Katanga Poultry Farms", "location": "Kolwezi, CD", "category": "Poultry & Dairy", "vetted": True, "otif": "94.2%", "defect_rate": "0.040%", "trust_score": 91, "active_contracts": 3, "lead_time_days": 5, "avatar": "shield"},
-            {"id": "SUP-05", "name": "Nippon Organics & Foodware", "location": "Yokohama, JP", "category": "Pantry & Oils", "vetted": True, "otif": "99.8%", "defect_rate": "0.001%", "trust_score": 99, "active_contracts": 5, "lead_time_days": 3, "avatar": "precision_manufacturing"}
+            {
+                "id": "SUP-01", "name": "GreenField Dairy Farms", "location": "Shenzhen, CN",
+                "category": "Dairy & Produce", "vetted": True, "otif": "99.4%", "defect_rate": "0.012%",
+                "trust_score": 98, "active_contracts": 4, "lead_time_days": 3, "avatar": "factory",
+                "supplier_tier": "TIER_1", "supplier_size": "ENTERPRISE", "sme_opportunity_score": 75,
+                "transport_mode": "ROAD", "distance_km": 420.0, "carbon_emission_factor": 0.105,
+                "carbon_score": 88, "estimated_co2_kg": 220.5, "sustainability_rank": "A+", "authenticity_verified": True
+            },
+            {
+                "id": "SUP-02", "name": "Nordic Bakery & Flour Co.", "location": "Oslo, NO",
+                "category": "Bakery & Grains", "vetted": True, "otif": "98.1%", "defect_rate": "0.005%",
+                "trust_score": 96, "active_contracts": 2, "lead_time_days": 2, "avatar": "inventory_2",
+                "supplier_tier": "TIER_1", "supplier_size": "SMALL / SME", "sme_opportunity_score": 94,
+                "transport_mode": "RAIL", "distance_km": 680.0, "carbon_emission_factor": 0.028,
+                "carbon_score": 95, "estimated_co2_kg": 95.2, "sustainability_rank": "A+", "authenticity_verified": True
+            },
+            {
+                "id": "SUP-03", "name": "Apex Organic Produce", "location": "Hsinchu, TW",
+                "category": "Fresh Fruits & Veggies", "vetted": True, "otif": "96.8%", "defect_rate": "0.024%",
+                "trust_score": 94, "active_contracts": 6, "lead_time_days": 4, "avatar": "memory",
+                "supplier_tier": "TIER_1", "supplier_size": "MID_MARKET", "sme_opportunity_score": 86,
+                "transport_mode": "ROAD", "distance_km": 560.0, "carbon_emission_factor": 0.105,
+                "carbon_score": 85, "estimated_co2_kg": 294.0, "sustainability_rank": "A", "authenticity_verified": True
+            },
+            {
+                "id": "SUP-04", "name": "Katanga Poultry Farms", "location": "Kolwezi, CD",
+                "category": "Poultry & Dairy", "vetted": True, "otif": "94.2%", "defect_rate": "0.040%",
+                "trust_score": 91, "active_contracts": 3, "lead_time_days": 5, "avatar": "shield",
+                "supplier_tier": "TIER_2", "supplier_size": "SMALL / SME", "sme_opportunity_score": 89,
+                "transport_mode": "OCEAN", "distance_km": 2400.0, "carbon_emission_factor": 0.015,
+                "carbon_score": 90, "estimated_co2_kg": 180.0, "sustainability_rank": "A+", "authenticity_verified": True
+            },
+            {
+                "id": "SUP-05", "name": "Nippon Organics & Foodware", "location": "Yokohama, JP",
+                "category": "Pantry & Oils", "vetted": True, "otif": "99.8%", "defect_rate": "0.001%",
+                "trust_score": 99, "active_contracts": 5, "lead_time_days": 3, "avatar": "precision_manufacturing",
+                "supplier_tier": "TIER_1", "supplier_size": "ENTERPRISE", "sme_opportunity_score": 72,
+                "transport_mode": "AIR", "distance_km": 1100.0, "carbon_emission_factor": 0.500,
+                "carbon_score": 68, "estimated_co2_kg": 2750.0, "sustainability_rank": "C", "authenticity_verified": True
+            },
+            {
+                "id": "SUP-06", "name": "Pacific Tropical Growers", "location": "Manila, PH",
+                "category": "Fresh Produce", "vetted": True, "otif": "93.5%", "defect_rate": "0.035%",
+                "trust_score": 88, "active_contracts": 2, "lead_time_days": 6, "avatar": "eco",
+                "supplier_tier": "TIER_2", "supplier_size": "SMALL / SME", "sme_opportunity_score": 91,
+                "transport_mode": "OCEAN", "distance_km": 1850.0, "carbon_emission_factor": 0.015,
+                "carbon_score": 92, "estimated_co2_kg": 138.7, "sustainability_rank": "A+", "authenticity_verified": True
+            },
+            {
+                "id": "SUP-07", "name": "Rhine Packaging & Glassworks", "location": "Düsseldorf, DE",
+                "category": "Packaging & Containers", "vetted": True, "otif": "97.2%", "defect_rate": "0.015%",
+                "trust_score": 93, "active_contracts": 4, "lead_time_days": 3, "avatar": "inventory",
+                "supplier_tier": "TIER_3", "supplier_size": "MID_MARKET", "sme_opportunity_score": 82,
+                "transport_mode": "RAIL", "distance_km": 340.0, "carbon_emission_factor": 0.028,
+                "carbon_score": 93, "estimated_co2_kg": 47.6, "sustainability_rank": "A+", "authenticity_verified": True
+            }
         ]
         for sup in sup_data:
             db.add(SupplierModel(**sup))
 
-        # 5. Seed Approvals
+        # 5. Seed Product Traceability Records
+        trace_data = [
+            {
+                "id": "TRC-2026-MILK", "batch_id": "BATCH-2026-MILK-01", "sku": "SKU-MILK-101",
+                "product_name": "Fresh Organic Whole Milk (1 Gallon)", "supplier_id": "SUP-01",
+                "supplier_name": "GreenField Dairy Farms", "purchase_order_id": "PO-2026-8942",
+                "shipment_id": "ORD-8942", "authentication_status": "VERIFIED", "authenticity_risk_score": 5,
+                "chain_of_custody_json": json.dumps([
+                    {"step": "Dairy Farm Pasteurization", "location": "Shenzhen Cold Hub", "time": "Oct 12, 08:30", "status": "Passed QA"},
+                    {"step": "Cold Chain Carrier Berthing", "location": "Pacific Gateway", "time": "Oct 14, 14:15", "status": "Manifest Verified"},
+                    {"step": "Chicago ORD-3 Dock Receipt", "location": "Chicago Distribution", "time": "Oct 20, 09:15", "status": "Dock Receipt Validated"}
+                ])
+            },
+            {
+                "id": "TRC-2026-AVO", "batch_id": "BATCH-2026-AVO-03", "sku": "SKU-AVO-303",
+                "product_name": "Fresh Hass Avocados (Box of 24)", "supplier_id": "SUP-03",
+                "supplier_name": "Apex Organic Produce", "purchase_order_id": "PO-2026-9921",
+                "shipment_id": "ORD-8939", "authentication_status": "VERIFIED", "authenticity_risk_score": 8,
+                "chain_of_custody_json": json.dumps([
+                    {"step": "Harvest & Sorting", "location": "Hsinchu Organic Groves", "time": "Oct 16, 06:00", "status": "Phytosanitary Certified"},
+                    {"step": "Air Cargo Freight Handover", "location": "Taoyuan Cargo", "time": "Oct 17, 22:30", "status": "Customs Inspection Cleared"},
+                    {"step": "Munich Fresh Inbound", "location": "Munich Cold Center", "time": "Oct 21, 08:00", "status": "Dock QA Verified"}
+                ])
+            }
+        ]
+        for trc in trace_data:
+            db.add(ProductTraceabilityModel(**trc))
+
+        # 6. Seed Approvals
         apv_data = [
             {
                 "id": "APV-401",
@@ -242,14 +387,14 @@ def init_db_and_seed():
             quotes = a.pop("quotes")
             db.add(RestockApprovalModel(**a, quotes_json=json.dumps(quotes)))
 
-        # 6. Seed Payment Transactions
+        # 7. Seed Payment Transactions
         txns = [
             {
                 "id": "pay_TRv8942LiveAlpha",
                 "order_id": "ORD-8942",
                 "po_number": "PO-8942-RESTOCK",
                 "amount": 34800.00,
-                "currency": "USD",
+                "currency": "INR",
                 "method": "smart_escrow",
                 "vendor": "GreenField Dairy Farms",
                 "invoice_ref": "#INV-2026-8942-GF",
@@ -261,7 +406,7 @@ def init_db_and_seed():
                 "order_id": "ORD-8941",
                 "po_number": "PO-8941-NOR",
                 "amount": 14500.00,
-                "currency": "USD",
+                "currency": "INR",
                 "method": "ach",
                 "vendor": "Nordic Bakery & Flour Co.",
                 "invoice_ref": "#INV-2026-8941-NOR",
@@ -273,7 +418,7 @@ def init_db_and_seed():
                 "order_id": "ORD-8930",
                 "po_number": "PO-8930-NIP",
                 "amount": 41200.00,
-                "currency": "USD",
+                "currency": "INR",
                 "method": "razorpay",
                 "vendor": "Nippon Organics & Foodware",
                 "invoice_ref": "#INV-2026-8930-NIP",

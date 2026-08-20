@@ -336,23 +336,32 @@ class SimulateStockoutRequest(BaseModel):
 class SupplierMatrixItem(BaseModel):
     supplier_id: str
     supplier_name: str
+    supplier_tier: str = "TIER_1"
+    supplier_size: str = "MID_MARKET"
     unit_price: str
     lead_time_days: int
     otif: str
     defect_rate: str
     trust_score: int
+    carbon_score: int = 85
+    sustainability_rank: str = "A"
+    estimated_co2_kg: float = 420.0
     composite_score: float
     is_recommended: bool
     rank: int
     rationale: str
 
 class AIExplainabilityFactors(BaseModel):
-    cost_advantage_pts: int
-    delivery_speed_pts: int
-    otif_reliability_pts: int
-    defect_history_pts: int
-    stockout_avoidance_pts: int
-    confidence_pct: int
+    cost_advantage_pts: int = 18
+    delivery_speed_pts: int = 21
+    otif_reliability_pts: int = 22
+    defect_history_pts: int = 17
+    stockout_avoidance_pts: int = 20
+    carbon_advantage_pts: int = 8
+    diversification_pts: int = 7
+    authenticity_pts: int = 5
+    final_score: int = 91
+    confidence_pct: int = 91
     why_recommended: List[str]
     expected_impact: dict
 
@@ -377,6 +386,12 @@ class RestockRecommendationResponse(BaseModel):
     estimated_cost: str
     estimated_savings: str = "₹48,600.00"
     delivery_time_delta: str = "7 days → 4 days"
+    is_perishable: bool = False
+    shelf_life_days: Optional[int] = None
+    days_until_expiry: Optional[float] = None
+    waste_risk_status: Optional[str] = "NORMAL"
+    supplier_dependency_pct: Optional[int] = 65
+    is_single_point_of_failure: Optional[bool] = False
     ai_reasoning: str
     explainability: Optional[AIExplainabilityFactors] = None
     supplier_matrix: Optional[List[SupplierMatrixItem]] = []
@@ -418,6 +433,132 @@ class ClosedLoopWorkflowStateResponse(BaseModel):
     low_stock_count: int
     normal_stock_count: int
     highest_risk_sku: Optional[dict] = None
+
+# --- PROBLEM STATEMENT 7: RESILIENCE & SUSTAINABILITY SCHEMAS ---
+
+class SupplierDependencyItem(BaseModel):
+    sku: str
+    product_name: str
+    category: str
+    primary_supplier_id: str
+    primary_supplier_name: str
+    supplier_dependency_pct: int
+    is_single_point_of_failure: bool
+    alternative_suppliers_count: int
+    current_disruption_risk_pct: int
+    diversified_disruption_risk_pct: int
+    risk_reduction_pct: int
+    ai_diversification_recommendation: str
+
+class SupplierDependenciesResponse(BaseModel):
+    total_skus: int
+    spof_count: int
+    dependencies: List[SupplierDependencyItem]
+
+class ResilienceScoreResponse(BaseModel):
+    resilience_score: int # 0-100 (e.g. 87)
+    single_point_of_failure_risk: str # LOW, MEDIUM, HIGH
+    critical_supplier_dependencies_count: int
+    alternative_supplier_coverage_avg: float
+    tier2_plus_visibility_pct: int # e.g. 76%
+    waste_risk_rate: str # e.g. 8.4%
+    authenticity_risk_level: str # LOW
+    sme_supplier_opportunities_count: int
+    estimated_co2_total: str # e.g. 12.4 tCO2e
+    ai_resilience_recommendation: str
+    critical_skus: List[SupplierDependencyItem]
+
+class SupplierSustainabilityItem(BaseModel):
+    supplier_id: str
+    supplier_name: str
+    supplier_tier: str
+    location: str
+    transport_mode: str
+    distance_km: float
+    shipment_weight_kg: float
+    carbon_emission_factor: float
+    estimated_co2_kg: float
+    carbon_score: int # 0-100
+    sustainability_rank: str # A+, A, B, C
+    ai_recommendation: str
+
+class SustainabilitySummaryResponse(BaseModel):
+    total_estimated_co2_tonnes: float
+    average_carbon_score: int
+    cleanest_supplier: str
+    transport_modes_breakdown: dict
+    suppliers: List[SupplierSustainabilityItem]
+
+class TierVisibilityResponse(BaseModel):
+    tier_1_count: int
+    tier_2_count: int
+    tier_3_count: int
+    total_suppliers: int
+    tier_2_plus_visibility_pct: int # e.g. 76%
+    visibility_status: str
+    ai_insight: str
+    tier_breakdown: List[dict]
+
+class TraceabilityCheckItem(BaseModel):
+    label: str
+    verified: bool
+    details: str
+
+class ProductTraceabilityResponse(BaseModel):
+    id: str
+    batch_id: str
+    sku: str
+    product_name: str
+    supplier_id: str
+    supplier_name: str
+    purchase_order_id: Optional[str] = None
+    shipment_id: Optional[str] = None
+    authentication_status: str # VERIFIED, PENDING, FLAGGED
+    authenticity_risk_score: int # 0-100 (e.g. 8)
+    traceability_checks: List[TraceabilityCheckItem]
+    chain_of_custody: List[dict]
+    created_at: datetime
+
+class PerishableWasteRiskItem(BaseModel):
+    sku: str
+    product_name: str
+    category: str
+    warehouse: str
+    on_hand: int
+    average_daily_demand: float
+    shelf_life_days: int
+    expiry_date: str
+    days_until_expiry: float
+    days_until_stockout: float
+    waste_risk_status: str # NORMAL, WASTE_RISK, EXPIRING_SOON, CRITICAL
+    ai_recommendation: str
+
+class PerishableWasteRiskResponse(BaseModel):
+    total_perishables: int
+    at_risk_count: int
+    expiring_soon_count: int
+    estimated_waste_prevented: str
+    items: List[PerishableWasteRiskItem]
+
+class SMEOpportunityItem(BaseModel):
+    supplier_id: str
+    supplier_name: str
+    supplier_tier: str
+    supplier_size: str
+    location: str
+    category: str
+    sme_opportunity_score: int # 0-100 (e.g. 84)
+    unit_price: str
+    otif: str
+    lead_time_days: int
+    available_capacity_pct: int
+    ai_rationale: str
+
+class SMEOpportunityResponse(BaseModel):
+    total_sme_suppliers: int
+    sme_procurement_share_pct: int
+    opportunities: List[SMEOpportunityItem]
+
 
 
 

@@ -1870,8 +1870,21 @@
           <tr class="border-b border-[#273647] hover:bg-[#1c2b3c]/50 transition-colors">
             <td class="py-4 px-4 font-mono text-[#7bd0ff] font-bold">${i.sku}</td>
             <td class="py-4 px-4">
-              <div class="font-bold text-white">${i.name}</div>
-              <div class="text-xs text-[#bec6e0]">${i.category}</div>
+              <div class="font-bold text-white flex items-center gap-2">
+                <span>${i.name}</span>
+                ${i.is_perishable || i.category.toLowerCase().includes('fresh') || i.category.toLowerCase().includes('dairy') || i.category.toLowerCase().includes('bakery') ? `
+                  <span class="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono text-[9px] border border-amber-500/30">
+                    PERISHABLE (~10d)
+                  </span>
+                ` : ''}
+              </div>
+              <div class="text-xs text-[#bec6e0] flex items-center gap-2 mt-0.5">
+                <span>${i.category}</span>
+                <span class="text-[#8992a8]">&bull;</span>
+                <button onclick="window.openTraceabilityModal('${i.sku}')" class="text-emerald-400 hover:text-emerald-300 font-mono text-[10px] underline flex items-center gap-0.5 cursor-pointer">
+                  <span class="material-symbols-outlined text-[10px]">verified</span> Audit Batch Traceability
+                </button>
+              </div>
             </td>
             <td class="py-4 px-4 text-xs text-[#d4e4fa]">${i.warehouse}</td>
             <td class="py-4 px-4 font-mono font-bold ${i.onHand < i.minSafety ? 'text-[#ffb4ab]' : 'text-white'}">${i.onHand.toLocaleString()} units</td>
@@ -1886,7 +1899,7 @@
               </span>
             </td>
             <td class="py-4 px-4 text-right">
-              <button onclick="window.SupplyChainActions.restockSku('${i.sku}')" class="px-3 py-1.5 rounded-lg bg-[#ff5c35] text-[#5a0e00] font-bold text-xs hover:bg-[#ffb4a3] transition-colors flex items-center gap-1.5 ml-auto">
+              <button onclick="window.SupplyChainActions.restockSku('${i.sku}')" class="px-3 py-1.5 rounded-lg bg-[#ff5c35] text-white font-bold text-xs hover:bg-[#b52701] transition-colors flex items-center gap-1.5 ml-auto">
                 <span class="material-symbols-outlined text-xs">add_shopping_cart</span>
                 <span>Restock SKU</span>
               </button>
@@ -1934,67 +1947,95 @@
     async function loadDynamicSupplierScorecards() {
       try {
         const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
-        const res = await fetch(`${apiBase}/api/suppliers/scorecards`);
-        if (res.ok) {
-          const scorecards = await res.json();
+        const [scoreRes, sustRes] = await Promise.all([
+          fetch(`${apiBase}/api/suppliers/scorecards`),
+          fetch(`${apiBase}/api/sustainability/suppliers`)
+        ]);
+
+        if (scoreRes.ok) {
+          const scorecards = await scoreRes.json();
+          let sustSuppliers = [];
+          if (sustRes.ok) {
+            sustSuppliers = await sustRes.json();
+          }
+
           const grid = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3');
           if (grid && scorecards.length > 0) {
-            grid.innerHTML = scorecards.map(s => `
-              <div class="bg-surface rounded-2xl border border-outline-variant/40 p-6 shadow-xl hover:border-primary transition-all flex flex-col justify-between">
-                <div>
-                  <div class="flex justify-between items-start mb-4">
-                    <div class="flex items-center gap-3">
-                      <div class="w-10 h-10 rounded-xl bg-primary-container/20 border border-primary/30 flex items-center justify-center text-primary">
-                        <span class="material-symbols-outlined">${s.avatar || 'precision_manufacturing'}</span>
+            grid.innerHTML = scorecards.map(s => {
+              const sustInfo = sustSuppliers.find(x => x.supplier_id === s.id) || {};
+              const tierBadge = sustInfo.supplier_tier || 'TIER_1';
+              const carbonRank = sustInfo.sustainability_rank || 'A';
+              const carbonScore = sustInfo.carbon_score || 85;
+              const transportMode = sustInfo.transport_mode || 'ROAD';
+
+              return `
+                <div class="bg-surface rounded-2xl border border-outline-variant/40 p-6 shadow-xl hover:border-primary transition-all flex flex-col justify-between">
+                  <div>
+                    <div class="flex justify-between items-start mb-3">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-primary-container/20 border border-primary/30 flex items-center justify-center text-primary">
+                          <span class="material-symbols-outlined">${s.avatar || 'precision_manufacturing'}</span>
+                        </div>
+                        <div>
+                          <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-white text-base font-['Geist',sans-serif]">${s.name}</h3>
+                          </div>
+                          <p class="text-xs text-secondary">${s.location} &bull; ${s.category}</p>
+                        </div>
+                      </div>
+                      <div class="flex flex-col items-end gap-1">
+                        <span class="px-2 py-0.5 rounded-full bg-[#273647] text-[#7bd0ff] text-[10px] font-mono font-bold">
+                          ${tierBadge}
+                        </span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-mono font-bold">
+                          Carbon: ${carbonRank} (${carbonScore})
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 p-3 bg-surface-container-high/60 rounded-xl mb-4 text-center">
+                      <div>
+                        <span class="text-[10px] text-secondary font-mono block">OTIF SLA</span>
+                        <strong class="text-sm text-tertiary font-mono">${s.otif}</strong>
                       </div>
                       <div>
-                        <h3 class="font-bold text-white text-base font-['Geist',sans-serif]">${s.name}</h3>
-                        <p class="text-xs text-secondary">${s.location} &bull; ${s.category}</p>
+                        <span class="text-[10px] text-secondary font-mono block">DEFECT RATE</span>
+                        <strong class="text-sm text-white font-mono">${s.defect_rate}</strong>
+                      </div>
+                      <div>
+                        <span class="text-[10px] text-secondary font-mono block">AI TRUST</span>
+                        <div class="flex items-center justify-center gap-1">
+                          <strong class="text-sm text-primary font-mono">${s.trust_score}/100</strong>
+                          ${s.recent_score_delta > 0 ? `<span class="text-emerald-400 text-[10px] font-mono font-bold">+${s.recent_score_delta}</span>` : ''}
+                        </div>
                       </div>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full ${s.vetted ? 'bg-tertiary-container/20 text-tertiary' : 'bg-surface-container-high text-secondary'} text-[10px] font-mono font-bold flex items-center gap-1">
-                      <span class="material-symbols-outlined text-xs">verified</span> ${s.vetted ? 'VETTED' : 'STANDARD'}
-                    </span>
-                  </div>
 
-                  <div class="grid grid-cols-3 gap-2 p-3 bg-surface-container-high/60 rounded-xl mb-4 text-center">
-                    <div>
-                      <span class="text-[10px] text-secondary font-mono block">OTIF SLA</span>
-                      <strong class="text-sm text-tertiary font-mono">${s.otif}</strong>
-                    </div>
-                    <div>
-                      <span class="text-[10px] text-secondary font-mono block">DEFECT RATE</span>
-                      <strong class="text-sm text-white font-mono">${s.defect_rate}</strong>
-                    </div>
-                    <div>
-                      <span class="text-[10px] text-secondary font-mono block">AI TRUST</span>
-                      <div class="flex items-center justify-center gap-1">
-                        <strong class="text-sm text-primary font-mono">${s.trust_score}/100</strong>
-                        ${s.recent_score_delta > 0 ? `<span class="text-emerald-400 text-[10px] font-mono font-bold">+${s.recent_score_delta}</span>` : ''}
+                    <div class="space-y-1.5 mb-4 text-[11px] font-mono">
+                      <div class="flex justify-between items-center">
+                        <span class="text-secondary">Transport Freight:</span>
+                        <span class="text-white font-bold">${transportMode} (${sustInfo.distance_km || 450} km)</span>
+                      </div>
+                      <div class="flex justify-between items-center">
+                        <span class="text-secondary">Completed Deliveries:</span>
+                        <span class="text-white font-bold">${s.completed_deliveries || 0} batches</span>
+                      </div>
+                      <div class="flex justify-between items-center">
+                        <span class="text-secondary">Closed-Loop Learning:</span>
+                        <span class="text-emerald-400 font-bold">Active in Neural Utility</span>
                       </div>
                     </div>
                   </div>
 
-                  <div class="space-y-1.5 mb-4">
-                    <div class="flex justify-between items-center text-[11px] font-mono">
-                      <span class="text-secondary">Completed Deliveries:</span>
-                      <span class="text-white font-bold">${s.completed_deliveries || 0} batches</span>
-                    </div>
-                    <div class="flex justify-between items-center text-[11px] font-mono">
-                      <span class="text-secondary">Closed-Loop Learning:</span>
-                      <span class="text-emerald-400 font-bold">Active in Neural Utility</span>
-                    </div>
+                  <div class="pt-4 border-t border-outline-variant/30 flex justify-between items-center">
+                    <span class="text-xs font-mono text-secondary">Lead Time: <strong class="text-white">${s.lead_time_days || 3} Days</strong></span>
+                    <button onclick="window.SupplyChainActions.createNewOrder({ supplier: '${s.name}', item: 'Sourcing Purchase Order', sku: 'SKU-RESTOCK' })" class="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-bold text-xs hover:bg-inverse-primary transition-colors flex items-center gap-1">
+                      <span class="material-symbols-outlined text-xs">add</span> Draft PO
+                    </button>
                   </div>
                 </div>
-
-                <div class="pt-4 border-t border-outline-variant/30 flex justify-between items-center">
-                  <span class="text-xs font-mono text-secondary">Lead Time: <strong class="text-white">${s.lead_time_days || 3} Days</strong></span>
-                  <button onclick="window.SupplyChainActions.createNewOrder({ supplier: '${s.name}', item: 'Sourcing Purchase Order', sku: 'SKU-RESTOCK' })" class="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-bold text-xs hover:bg-inverse-primary transition-colors flex items-center gap-1">
-                    <span class="material-symbols-outlined text-xs">add</span> Draft PO
-                  </button>
-                </div>
-              </div>
-            `).join('');
+              `;
+            }).join('');
           }
         }
       } catch (e) {
@@ -3168,12 +3209,12 @@
             <div class="overflow-x-auto">
               <table class="w-full text-left text-[11px] font-mono">
                 <thead>
-                  <tr class="text-[#8992a8] border-b border-[#273647] pb-1">
-                    <th class="py-1.5 px-2">SUPPLIER</th>
+                  <tr class="text-[#8992a8] border-b border-[#273647] pb-1 text-[10px] font-mono">
+                    <th class="py-1.5 px-2">SUPPLIER (TIER)</th>
                     <th class="py-1.5 px-2">PRICE</th>
-                    <th class="py-1.5 px-2">LEAD TIME</th>
+                    <th class="py-1.5 px-2">LEAD</th>
                     <th class="py-1.5 px-2">OTIF</th>
-                    <th class="py-1.5 px-2">DEFECT</th>
+                    <th class="py-1.5 px-2">CARBON</th>
                     <th class="py-1.5 px-2 text-right">SCORE</th>
                   </tr>
                 </thead>
@@ -3184,55 +3225,87 @@
             </div>
           </div>
 
-          <!-- AI Explainability & Factor Contribution Card -->
+          <!-- SPoF Diversification & Perishable Banner -->
+          <div id="sc-modal-spof-banner" class="hidden p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-amber-400 text-base shrink-0 mt-0.5">warning</span>
+            <div class="flex-1">
+              <span class="font-bold text-amber-300">Single-Point-of-Failure Detected:</span>
+              <span id="sc-modal-spof-text" class="text-[11px] text-amber-100/90 block mt-0.5">
+                Current concentration is high. AI recommends dual-sourcing across qualified alternatives to reduce disruption risk from 82% to 31%.
+              </span>
+            </div>
+          </div>
+
+          <!-- AI Explainability & 8-Factor Contribution Card -->
           <div class="bg-[#1c2b3c]/60 border-l-4 border-[#ff5c35] p-4 rounded-r-xl space-y-3">
             <div class="flex items-center justify-between">
               <div class="font-bold text-[#ff5c35] flex items-center gap-1.5 text-xs">
                 <span class="material-symbols-outlined text-sm">smart_toy</span>
-                AI Explainability: Why This Supplier Was Selected
+                AI Explainability: 8-Factor Utility Matrix
               </div>
-              <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold text-[10px]" id="sc-modal-confidence-badge">
-                Confidence: 91%
-              </span>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-full bg-[#ff5c35]/20 text-[#ffb4ab] font-mono font-bold text-[10px]" id="sc-modal-final-score-badge">
+                  Final Score: 91/100
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-mono font-bold text-[10px]" id="sc-modal-confidence-badge">
+                  Confidence: 91%
+                </span>
+              </div>
             </div>
 
-            <!-- Factor Points Grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-[10px] font-mono">
-              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647]">
-                <div class="text-[#8992a8]">Cost Advantage</div>
-                <div class="text-emerald-400 font-bold text-xs" id="sc-factor-cost">+18 pts</div>
+            <!-- 8 Factor Points Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1.5 text-center text-[9px] font-mono">
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">Cost</div>
+                <div class="text-emerald-400 font-bold text-[11px]" id="sc-factor-cost">+18 pts</div>
               </div>
-              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647]">
-                <div class="text-[#8992a8]">Delivery Speed</div>
-                <div class="text-[#7bd0ff] font-bold text-xs" id="sc-factor-speed">+24 pts</div>
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">Speed</div>
+                <div class="text-[#7bd0ff] font-bold text-[11px]" id="sc-factor-speed">+21 pts</div>
               </div>
-              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647]">
-                <div class="text-[#8992a8]">OTIF Reliability</div>
-                <div class="text-emerald-400 font-bold text-xs" id="sc-factor-otif">+22 pts</div>
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">OTIF SLA</div>
+                <div class="text-emerald-400 font-bold text-[11px]" id="sc-factor-otif">+22 pts</div>
               </div>
-              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647]">
-                <div class="text-[#8992a8]">Defect History</div>
-                <div class="text-[#bec6e0] font-bold text-xs" id="sc-factor-defect">+17 pts</div>
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">Defect QA</div>
+                <div class="text-[#bec6e0] font-bold text-[11px]" id="sc-factor-defect">+17 pts</div>
               </div>
-              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647]">
-                <div class="text-[#8992a8]">Stockout Shield</div>
-                <div class="text-[#ff5c35] font-bold text-xs" id="sc-factor-stockout">+20 pts</div>
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">Stockout</div>
+                <div class="text-[#ff5c35] font-bold text-[11px]" id="sc-factor-stockout">+20 pts</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">Carbon</div>
+                <div class="text-emerald-400 font-bold text-[11px]" id="sc-factor-carbon">+8 pts</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">Diversify</div>
+                <div class="text-[#7bd0ff] font-bold text-[11px]" id="sc-factor-diversify">+7 pts</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-[#0b1622] border border-[#273647]">
+                <div class="text-[#8992a8]">Authentic</div>
+                <div class="text-emerald-400 font-bold text-[11px]" id="sc-factor-authenticity">+5 pts</div>
               </div>
             </div>
 
             <!-- Expected Impact Metrics -->
-            <div class="p-2.5 rounded-lg bg-[#0b1622] border border-[#273647] grid grid-cols-3 gap-2 text-center text-[11px] font-mono">
+            <div class="p-2.5 rounded-lg bg-[#0b1622] border border-[#273647] grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] font-mono">
               <div>
-                <span class="text-[#8992a8]">Stockout Risk:</span>
-                <div class="font-bold text-emerald-400" id="sc-impact-risk">82% → 14%</div>
+                <span class="text-[#8992a8]">Risk Shift:</span>
+                <div class="font-bold text-emerald-400 text-xs" id="sc-impact-risk">82% → 14%</div>
               </div>
               <div>
                 <span class="text-[#8992a8]">Est. Savings:</span>
-                <div class="font-bold text-emerald-400" id="sc-impact-savings">₹48,600.00</div>
+                <div class="font-bold text-emerald-400 text-xs" id="sc-impact-savings">₹48,600.00</div>
               </div>
               <div>
-                <span class="text-[#8992a8]">Delivery Speed:</span>
-                <div class="font-bold text-[#7bd0ff]" id="sc-impact-leadtime">7d → 4d</div>
+                <span class="text-[#8992a8]">Delivery Time:</span>
+                <div class="font-bold text-[#7bd0ff] text-xs" id="sc-impact-leadtime">7d → 3d</div>
+              </div>
+              <div>
+                <span class="text-[#8992a8]">Est. Carbon:</span>
+                <div class="font-bold text-emerald-400 text-xs" id="sc-impact-carbon">220 kg CO₂e</div>
               </div>
             </div>
 
@@ -3325,32 +3398,52 @@
 
           window.recalcAiModalCost();
 
+          // SPoF Diversification Banner
+          const spofBanner = document.getElementById('sc-modal-spof-banner');
+          const spofText = document.getElementById('sc-modal-spof-text');
+          if (spofBanner && rec.is_single_point_of_failure) {
+            spofBanner.classList.remove('hidden');
+            if (spofText) {
+              spofText.textContent = `${rec.sku} depends ${rec.supplier_dependency_pct}% on primary supplier. SPoF Risk: HIGH. AI recommends diversifying restock across qualified alternatives to reduce disruption exposure from ${rec.stockout_risk_before} to ${rec.stockout_risk_after}.`;
+            }
+          } else if (spofBanner) {
+            spofBanner.classList.add('hidden');
+          }
+
           // Render Decision Matrix Table
           const matrixTbody = document.getElementById('sc-modal-matrix-tbody');
           if (matrixTbody && rec.supplier_matrix) {
             matrixTbody.innerHTML = rec.supplier_matrix.map(m => `
               <tr class="${m.is_recommended ? 'bg-[#ff5c35]/15 font-bold text-white' : 'hover:bg-[#1c2b3c]/40 text-[#bec6e0]'}">
-                <td class="py-2 px-2 flex items-center gap-1.5">
+                <td class="py-2 px-2 flex items-center gap-1.5 text-xs">
                   ${m.is_recommended ? '<span class="material-symbols-outlined text-xs text-[#ff5c35]">star</span>' : ''}
                   <span>${m.supplier_name}</span>
+                  <span class="px-1.5 py-0.2 rounded bg-[#273647] text-[9px] font-mono text-[#7bd0ff]">${m.supplier_tier || 'TIER_1'}</span>
                   ${m.is_recommended ? '<span class="px-1.5 py-0.2 rounded bg-[#ff5c35] text-white text-[9px]">RECOMMENDED</span>' : ''}
                 </td>
-                <td class="py-2 px-2">${m.unit_price}</td>
-                <td class="py-2 px-2">${m.lead_time_days} days</td>
-                <td class="py-2 px-2 text-emerald-400">${m.otif}</td>
-                <td class="py-2 px-2 text-amber-400">${m.defect_rate}</td>
-                <td class="py-2 px-2 text-right text-emerald-400 font-extrabold">${m.composite_score}/100</td>
+                <td class="py-2 px-2 text-xs">${m.unit_price}</td>
+                <td class="py-2 px-2 text-xs">${m.lead_time_days}d</td>
+                <td class="py-2 px-2 text-emerald-400 text-xs">${m.otif}</td>
+                <td class="py-2 px-2 text-xs">
+                  <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">${m.sustainability_rank || 'A'} (${m.carbon_score || 85})</span>
+                </td>
+                <td class="py-2 px-2 text-right text-emerald-400 font-extrabold text-xs">${m.composite_score}/100</td>
               </tr>
             `).join('');
           }
 
-          // Render Explainability Factors
+          // Render 8 Explainability Factors
           if (rec.explainability) {
-            document.getElementById('sc-factor-cost').textContent = `+${rec.explainability.cost_advantage_pts} pts`;
-            document.getElementById('sc-factor-speed').textContent = `+${rec.explainability.delivery_speed_pts} pts`;
-            document.getElementById('sc-factor-otif').textContent = `+${rec.explainability.otif_reliability_pts} pts`;
-            document.getElementById('sc-factor-defect').textContent = `+${rec.explainability.defect_history_pts} pts`;
-            document.getElementById('sc-factor-stockout').textContent = `+${rec.explainability.stockout_avoidance_pts} pts`;
+            document.getElementById('sc-factor-cost').textContent = `+${rec.explainability.cost_advantage_pts || 18} pts`;
+            document.getElementById('sc-factor-speed').textContent = `+${rec.explainability.delivery_speed_pts || 21} pts`;
+            document.getElementById('sc-factor-otif').textContent = `+${rec.explainability.otif_reliability_pts || 22} pts`;
+            document.getElementById('sc-factor-defect').textContent = `+${rec.explainability.defect_history_pts || 17} pts`;
+            document.getElementById('sc-factor-stockout').textContent = `+${rec.explainability.stockout_avoidance_pts || 20} pts`;
+            if (document.getElementById('sc-factor-carbon')) document.getElementById('sc-factor-carbon').textContent = `+${rec.explainability.carbon_advantage_pts || 8} pts`;
+            if (document.getElementById('sc-factor-diversify')) document.getElementById('sc-factor-diversify').textContent = `+${rec.explainability.diversification_pts || 7} pts`;
+            if (document.getElementById('sc-factor-authenticity')) document.getElementById('sc-factor-authenticity').textContent = `+${rec.explainability.authenticity_pts || 5} pts`;
+            if (document.getElementById('sc-modal-final-score-badge')) document.getElementById('sc-modal-final-score-badge').textContent = `Final Score: ${rec.explainability.final_score || 91}/100`;
+
             document.getElementById('sc-modal-confidence-badge').textContent = `Confidence: ${rec.explainability.confidence_pct}%`;
 
             const whyList = document.getElementById('sc-modal-why-list');
@@ -3362,6 +3455,9 @@
           document.getElementById('sc-impact-risk').textContent = `${rec.stockout_risk_before} → ${rec.stockout_risk_after}`;
           document.getElementById('sc-impact-savings').textContent = rec.estimated_savings;
           document.getElementById('sc-impact-leadtime').textContent = rec.delivery_time_delta;
+          if (document.getElementById('sc-impact-carbon') && rec.explainability && rec.explainability.expected_impact) {
+            document.getElementById('sc-impact-carbon').textContent = rec.explainability.expected_impact.carbon_footprint || '220 kg CO₂e';
+          }
 
           const sevBadge = document.getElementById('sc-modal-severity-badge');
           if (sevBadge) {
@@ -3562,7 +3658,231 @@
     };
   }
 
-  // --- 14. HACKATHON DEMO TRIGGER: SIMULATE STOCKOUT ---
+  // --- 15. PRODUCT AUTHENTICITY & TRACEABILITY MODAL ---
+  function injectTraceabilityModal() {
+    if (document.getElementById('sc-traceability-modal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'sc-traceability-modal';
+    modal.className = 'fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4';
+    modal.innerHTML = `
+      <div class="bg-[#0e1a26] border border-[#273647] rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="p-4 border-b border-[#273647] flex items-center justify-between bg-[#122131]">
+          <div class="flex items-center gap-2.5">
+            <span class="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 material-symbols-outlined text-xl">verified</span>
+            <div>
+              <h4 class="font-bold text-white text-sm">Product Authenticity & Batch Traceability</h4>
+              <p id="sc-trace-sku-subtitle" class="text-xs text-[#8992a8] font-mono">SKU-AVO-303 • Batch Verification Ledger</p>
+            </div>
+          </div>
+          <button onclick="window.closeTraceabilityModal()" class="w-8 h-8 rounded-full bg-[#1c2b3c] hover:bg-[#273647] text-[#bec6e0] flex items-center justify-center transition-colors">
+            <span class="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+
+        <!-- Content Body -->
+        <div class="p-5 overflow-y-auto space-y-4 font-['Inter',sans-serif] text-xs">
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center font-mono">
+            <div class="p-2.5 rounded-xl bg-[#122131] border border-[#273647]">
+              <span class="text-[#8992a8] text-[10px] block">Batch Number</span>
+              <span id="sc-trace-batch-id" class="font-bold text-white text-xs">BATCH-2026-AVO-03</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#122131] border border-[#273647]">
+              <span class="text-[#8992a8] text-[10px] block">Status</span>
+              <span id="sc-trace-status" class="font-bold text-emerald-400 text-xs">VERIFIED</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#122131] border border-[#273647]">
+              <span class="text-[#8992a8] text-[10px] block">Authenticity Risk</span>
+              <span id="sc-trace-risk-score" class="font-bold text-emerald-400 text-xs">8 / 100</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-[#122131] border border-[#273647]">
+              <span class="text-[#8992a8] text-[10px] block">Supplier</span>
+              <span id="sc-trace-supplier" class="font-bold text-white text-xs truncate">Apex Organic</span>
+            </div>
+          </div>
+
+          <!-- 5-Point AI Traceability Checks -->
+          <div class="bg-[#122131] border border-[#273647] rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-emerald-400 text-sm">fact_check</span>
+                5-Point AI Traceability & Custody Checks
+              </span>
+              <span class="text-[10px] font-mono text-emerald-400">All Checks Passed</span>
+            </div>
+
+            <div id="sc-trace-checks-list" class="space-y-2">
+              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647] flex items-center justify-between">
+                <span class="text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-emerald-400 text-xs">check_circle</span>
+                  <span>Supplier Identity Verified</span>
+                </span>
+                <span class="text-[#8992a8] font-mono text-[10px]">Vetted Tier-1 certified supplier record</span>
+              </div>
+              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647] flex items-center justify-between">
+                <span class="text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-emerald-400 text-xs">check_circle</span>
+                  <span>Purchase Order Verified</span>
+                </span>
+                <span class="text-[#8992a8] font-mono text-[10px]">PO-2026-9921 authorized in ERP</span>
+              </div>
+              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647] flex items-center justify-between">
+                <span class="text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-emerald-400 text-xs">check_circle</span>
+                  <span>Shipment Chain Linked</span>
+                </span>
+                <span class="text-[#8992a8] font-mono text-[10px]">Matched to carrier manifest ORD-8939</span>
+              </div>
+              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647] flex items-center justify-between">
+                <span class="text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-emerald-400 text-xs">check_circle</span>
+                  <span>Batch Integrity Recorded</span>
+                </span>
+                <span class="text-[#8992a8] font-mono text-[10px]">Batch registered with timestamp</span>
+              </div>
+              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647] flex items-center justify-between">
+                <span class="text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-emerald-400 text-xs">check_circle</span>
+                  <span>Dock Delivery QA Validated</span>
+                </span>
+                <span class="text-[#8992a8] font-mono text-[10px]">Zero defect tolerance check passed</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chain of Custody Timeline -->
+          <div class="bg-[#122131] border border-[#273647] rounded-xl p-4 space-y-2.5">
+            <span class="font-bold text-white flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-[#7bd0ff] text-sm">timeline</span>
+              Chain-of-Custody Checkpoints
+            </span>
+            <div id="sc-trace-custody-list" class="space-y-2 font-mono text-[11px]">
+              <div class="flex items-center justify-between p-2 rounded bg-[#0b1622] border border-[#273647]">
+                <span class="text-white">1. Origin Facility (Hsinchu Farms)</span>
+                <span class="text-emerald-400">Phytosanitary Certified</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-[#0b1622] border border-[#273647]">
+                <span class="text-white">2. Port Customs (Taoyuan Cargo)</span>
+                <span class="text-emerald-400">Customs Cleared</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded bg-[#0b1622] border border-[#273647]">
+                <span class="text-white">3. Munich Cold Center</span>
+                <span class="text-emerald-400">Dock QA Verified</span>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-[10px] text-center text-[#8992a8] font-mono">
+            🛡️ <em>Traceability record authenticated via SupplyChain.AI Enterprise Ledger. Counterfeit risk index: Low (8/100).</em>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-[#273647] bg-[#122131]/80 flex justify-end">
+          <button onclick="window.closeTraceabilityModal()" class="px-5 py-2 rounded-xl bg-primary hover:bg-primary-container text-white font-bold text-xs transition-all">
+            Close Traceability Audit
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    window.openTraceabilityModal = async function(sku) {
+      modal.classList.replace('hidden', 'flex');
+      try {
+        const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+        const res = await fetch(`${apiBase}/api/traceability/${sku}`);
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('sc-trace-sku-subtitle').textContent = `${data.sku} • ${data.product_name}`;
+          document.getElementById('sc-trace-batch-id').textContent = data.batch_id;
+          document.getElementById('sc-trace-status').textContent = data.authentication_status;
+          document.getElementById('sc-trace-risk-score').textContent = `${data.authenticity_risk_score} / 100`;
+          document.getElementById('sc-trace-supplier').textContent = data.supplier_name;
+
+          if (data.traceability_checks && data.traceability_checks.length > 0) {
+            document.getElementById('sc-trace-checks-list').innerHTML = data.traceability_checks.map(c => `
+              <div class="p-2 rounded-lg bg-[#0b1622] border border-[#273647] flex items-center justify-between">
+                <span class="text-white flex items-center gap-2">
+                  <span class="material-symbols-outlined text-emerald-400 text-xs">check_circle</span>
+                  <span>${c.label}</span>
+                </span>
+                <span class="text-[#8992a8] font-mono text-[10px]">${c.details}</span>
+              </div>
+            `).join('');
+          }
+
+          if (data.chain_of_custody && data.chain_of_custody.length > 0) {
+            document.getElementById('sc-trace-custody-list').innerHTML = data.chain_of_custody.map((c, i) => `
+              <div class="flex items-center justify-between p-2 rounded bg-[#0b1622] border border-[#273647]">
+                <span class="text-white">${i + 1}. ${c.step} (${c.location})</span>
+                <span class="text-emerald-400">${c.status} • ${c.time}</span>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching traceability:', e);
+      }
+    };
+
+    window.closeTraceabilityModal = function() {
+      modal.classList.replace('flex', 'hidden');
+    };
+  }
+
+  // --- 16. RESILIENCE & SUSTAINABILITY DASHBOARD RENDERER ---
+  window.renderResilienceAndSustainabilityMetrics = async function() {
+    if (!document.getElementById('ps7-resilience-kpi-container')) return;
+
+    try {
+      const apiBase = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+      const [resScoreRes, sustRes] = await Promise.all([
+        fetch(`${apiBase}/api/resilience/score`),
+        fetch(`${apiBase}/api/sustainability/summary`)
+      ]);
+
+      if (resScoreRes.ok) {
+        const rData = await resScoreRes.json();
+        const scoreEl = document.getElementById('ps7-resilience-score');
+        if (scoreEl) scoreEl.innerHTML = `<span>${rData.resilience_score}</span><span class="text-xs text-secondary font-normal">/100</span>`;
+        
+        const spofEl = document.getElementById('ps7-spof-risk');
+        if (spofEl) spofEl.textContent = rData.single_point_of_failure_risk;
+
+        const spofSub = document.getElementById('ps7-spof-sub');
+        if (spofSub) spofSub.textContent = `${rData.critical_supplier_dependencies_count} SPoF (${rData.alternative_supplier_coverage_avg} Alt Avg)`;
+
+        const tierEl = document.getElementById('ps7-tier-vis');
+        if (tierEl) tierEl.textContent = `${rData.tier2_plus_visibility_pct}%`;
+
+        const wasteEl = document.getElementById('ps7-waste-risk');
+        if (wasteEl) wasteEl.textContent = rData.waste_risk_rate;
+
+        const authEl = document.getElementById('ps7-auth-risk');
+        if (authEl) authEl.textContent = rData.authenticity_risk_level;
+
+        const smeEl = document.getElementById('ps7-sme-count');
+        if (smeEl) smeEl.textContent = rData.sme_supplier_opportunities_count;
+
+        const recEl = document.getElementById('ps7-resilience-rec-text');
+        if (recEl) recEl.textContent = rData.ai_resilience_recommendation;
+      }
+
+      if (sustRes.ok) {
+        const sData = await sustRes.json();
+        const co2El = document.getElementById('ps7-co2-total');
+        if (co2El) co2El.innerHTML = `${sData.total_estimated_co2_tonnes} <span class="text-xs font-normal text-secondary">tCO₂e</span>`;
+      }
+    } catch (e) {
+      console.error('Error rendering resilience & sustainability metrics:', e);
+    }
+  };
+
+  // --- 17. HACKATHON DEMO TRIGGER: SIMULATE STOCKOUT ---
   window.simulateStockoutDemo = async function(sku = 'SKU-AVO-303') {
     try {
       window.showToast('Triggering Stockout Simulation', 'Simulating warehouse inventory drop below critical threshold...', 'ai');
@@ -3590,6 +3910,7 @@
         fetchUnreadAlerts();
         if (window.renderAlertsList) window.renderAlertsList();
         if (window.renderDashboardInventoryRiskWidget) window.renderDashboardInventoryRiskWidget();
+        if (window.renderResilienceAndSustainabilityMetrics) window.renderResilienceAndSustainabilityMetrics();
 
         window.showToast('🚨 CRITICAL STOCK ALERT', `${data.product_name} (${data.simulated_sku}) dropped to ${data.current_stock} units. Email alert generated!`, 'error');
 
@@ -3759,16 +4080,23 @@
     injectNotificationCenterPanel();
     injectAiRestockModal();
     injectShipmentOutcomeModal();
+    injectTraceabilityModal();
     fetchUnreadAlerts();
     
     if (document.getElementById('dashboard-inventory-risk-container')) {
       window.renderDashboardInventoryRiskWidget();
+    }
+    if (document.getElementById('ps7-resilience-kpi-container')) {
+      window.renderResilienceAndSustainabilityMetrics();
     }
 
     // Polling every 45 seconds for continuous telemetry
     if (!alertPollingInterval) {
       alertPollingInterval = setInterval(() => {
         fetchUnreadAlerts();
+        if (document.getElementById('ps7-resilience-kpi-container')) {
+          window.renderResilienceAndSustainabilityMetrics();
+        }
       }, 45000);
     }
   }

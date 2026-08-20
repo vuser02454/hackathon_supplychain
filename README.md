@@ -177,29 +177,79 @@ Open your browser at: **`http://localhost:8000`**
 ├── render.yaml                                        # Render Cloud Blueprint Configuration
 ├── index.html                                         # 🔐 Authentication Portal
 ├── dashboard.html                                     # 📊 Executive Dashboard & Closed-Loop Pipeline Widget
+---
+
+## 🌍 Problem Statement 7: Resilience & Sustainability in Global Supply Chains
+
+SupplyChain.AI is explicitly architected to address the **5 critical challenges** outlined in Problem Statement 7:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│             PROBLEM STATEMENT 7: RESILIENCE & SUSTAINABILITY ENGINE            │
+├───────────────────────────────┬────────────────────────────────────────────────┤
+│ CHALLENGE                     │ SUPPLYCHAIN.AI ARCHITECTURAL SOLUTION          │
+├───────────────────────────────┼────────────────────────────────────────────────┤
+│ 1. SPoF Supplier Dependency   │ Single-point-of-failure alert (>70% exposure)  │
+│                               │ and automated dual-sourcing splits (60/40).    │
+│ 2. Hidden Carbon Footprint    │ Transport emission calculation per freight     │
+│                               │ mode (Road, Rail, Ocean, Air) & green rankings.│
+│ 3. Counterfeit Product Risk   │ 5-point batch verification ledger, chain-of-   │
+│                               │ custody tracking, Authenticity Score (0-100).  │
+│ 4. Poor SME Visibility        │ SME Opportunity Score (84/100) and fair neural │
+│                               │ capacity weighting in the utility matrix.      │
+│ 5. Waste & Perishables        │ Shelf-life vs stockout throttling, expiry alert│
+│                               │ engine, and safety buffer optimization.        │
+└───────────────────────────────┴────────────────────────────────────────────────┘
+```
+
+### 🧠 8-Factor Sourcing Utility Matrix
+
+The AI recommendation engine (`backend/ai_service.py`) scores candidate suppliers across 8 balanced dimensions:
+
+$$\text{Composite Score} = \text{Cost (18)} + \text{Speed (21)} + \text{OTIF (22)} + \text{Defect (17)} + \text{Stockout (20)} + \text{Carbon (8)} + \text{Diversify (7)} + \text{Auth (5)}$$
+
+- **Carbon Footprint Model:** Calculated as $\text{CO}_2 = \text{distance\_km} \times \frac{\text{weight\_kg}}{1000} \times \text{emission\_factor}$
+  - `Air`: $0.500\text{ kg CO}_2/\text{tonne-km}$
+  - `Road`: $0.105\text{ kg CO}_2/\text{tonne-km}$
+  - `Rail`: $0.028\text{ kg CO}_2/\text{tonne-km}$
+  - `Ocean`: $0.015\text{ kg CO}_2/\text{tonne-km}$
+- **Resilience Index:** Baseline 94 adjusted by concentration penalties for high-risk single-point dependencies.
+- **Perishable Waste Classification:** Expiry date tracking with `<3d` (Critical), `<7d` (Expiring Soon), and `Safety Overstock` (Waste Risk).
+
+---
+
+## 📁 Project Architecture & File Organization
+
+```
+├── index.html                                          # 🔐 Authentication Portal (Passkey SSO & Biometrics)
+├── dashboard.html                                      # 📊 Executive Dashboard (PS7 Banner & Closed-Loop)
 ├── profile.html                                       # 👤 Executive Profile & Settings
-├── inventory.html                                     # 📦 Inventory Intelligence (₹ INR)
+├── inventory.html                                     # 📦 Inventory Intelligence & Perishables (₹ INR)
 ├── orders.html                                         # 🚚 Freight Logistics & Orders
-├── suppliers.html                                     # 🏭 Supplier Performance & Scorecards
+├── suppliers.html                                     # 🏭 Supplier Performance, Tiers & Scorecards
 ├── ai-insights.html                                   # 🤖 AI Demand Forecasting & Vendor Switching
 ├── restock-approval.html                              # ✍️ Restock Purchase Authorization Desk
 ├── payments.html                                      # 💳 B2B Payment Gateway & Smart Escrow (₹ INR)
+├── supplychain.js                                     # ⚡ Unified Client Architecture & Reactive Engine
 ├── backend/
 │   ├── main.py                                        # FastAPI Application & Static Asset Routing
-│   ├── models.py                                      # SQLAlchemy Database Models (SPH, Alerts, Orders, POs, Users)
+│   ├── models.py                                      # SQLAlchemy Models (Suppliers, Inventory, Traceability)
 │   ├── schemas.py                                     # Pydantic Schemas & Decision Matrix Definitions
 │   ├── database.py                                    # Database Engine & Session Provider
 │   ├── seed_data.py                                   # Database Initialization & SQLite Migrations
 │   ├── email_service.py                               # Resend Email Integration (Dynamic User Recipient)
-│   ├── ai_service.py                                  # Supply Chain Neural Utility Function & Decision Matrix
+│   ├── ai_service.py                                  # 8-Factor Sourcing Utility Function & Explainability
 │   ├── supabase_service.py                            # Supabase Cloud Database Client
 │   └── routers/
 │       ├── auth.py                                    # Authentication & Passkey SSO
 │       ├── orders.py                                  # Freight Lifecycle, Advancement & Delivery Outcome
-│       ├── inventory.py                               # Threshold Scanning, Alerts, & Sourcing Matrix
-│       ├── suppliers.py                               # Supplier Scorecards & Performance History
+│       ├── inventory.py                               # Stockout Alerts, Waste Risk & Sourcing Matrix
+│       ├── suppliers.py                               # Supplier Scorecards, Tiers & SME Pipeline
 │       ├── approvals.py                               # Purchase Order Authorization
 │       ├── payments.py                                # Razorpay Signature Verification & Escrow
+│       ├── resilience.py                              # [PS7] Resilience Score & SPoF Dependencies
+│       ├── sustainability.py                          # [PS7] Carbon Calculations & Green Rankings
+│       ├── traceability.py                            # [PS7] Batch Authenticity & Custody Ledger
 │       └── ai.py                                      # Copilot LLM & Demand Forecast Engine
 ```
 
@@ -210,23 +260,26 @@ Open your browser at: **`http://localhost:8000`**
 | Resource | URL / Endpoint | Method | Description |
 | :--- | :--- | :--- | :--- |
 | **Authentication Portal** | `/` | GET | Enterprise login portal & biometrics |
-| **Executive Dashboard** | `/dashboard` | GET | Central command dashboard & Closed-Loop widget |
+| **Executive Dashboard** | `/dashboard` | GET | Command dashboard with PS7 5-Pillar Banner |
 | **Profile & Settings** | `/profile` | GET | Executive profile, photo, phone, & Supabase sync |
-| **Inventory Intelligence**| `/inventory` | GET | Stock & warehouse management in ₹ INR |
+| **Inventory Intelligence**| `/inventory` | GET | Stock & perishable management in ₹ INR |
 | **Freight Tracking** | `/orders` | GET | Live shipment tracking & milestone timeline |
-| **Supplier Scorecards** | `/suppliers` | GET | Vendor ratings, OTIF, & dynamic trust metrics |
+| **Supplier Scorecards** | `/suppliers` | GET | Tier 1/2/3 ratings, SME scores & carbon ranks |
 | **AI Demand Forecasting**| `/ai-insights` | GET | Neural profit/loss forecast & vendor arbitrage |
 | **Restock Approvals** | `/restock-approval` | GET | Purchase order authorization desk |
 | **Payment Gateway** | `/payments` | GET | B2B payment & escrow portal in ₹ INR |
-| **Scan Inventory Thresholds**| `/api/inventory/check-stock` | POST | Evaluates thresholds & routes emails to active user |
-| **Unread Alerts Summary** | `/api/inventory/alerts/unread` | GET | Unread count & severity summary for topbar bell |
-| **Inventory Alerts Roster** | `/api/inventory/alerts` | GET | Full alert history with resolved filters |
-| **AI Restock Proposal & Matrix** | `/api/inventory/{sku}/restock-recommendation` | POST | Multi-vendor decision matrix & factor points |
+| **Resilience Score** | `/api/resilience/score` | GET | Overall resilience index, SPoF risk, & deep tier visibility |
+| **Supplier Dependencies** | `/api/resilience/dependencies` | GET | SPoF concentration analysis & dual-sourcing splits |
+| **Sustainability Summary** | `/api/sustainability/summary` | GET | Network-wide carbon footprint & mode breakdown |
+| **Supplier Carbon Ranks** | `/api/sustainability/suppliers` | GET | Supplier transport modes, distance, & green ranking |
+| **Tier-2+ Visibility** | `/api/suppliers/tier-visibility` | GET | Multi-tier supply network transparency (Tier 1/2/3) |
+| **SME Supplier Pipeline** | `/api/suppliers/sme-opportunities` | GET | Fair procurement opportunities for small businesses |
+| **Perishable Waste Risk** | `/api/inventory/waste-risk` | GET | Shelf-life tracking, expiry risks & spoilage reduction |
+| **Batch Traceability** | `/api/traceability/{sku}` | GET | 5-point verification ledger & chain-of-custody audit |
+| **AI Restock Proposal & Matrix** | `/api/inventory/{sku}/restock-recommendation` | POST | 8-factor decision matrix with carbon & diversification |
 | **Closed-Loop Workflow State** | `/api/inventory/closed-loop-state` | GET | Dashboard executive metrics & KPI counters |
 | **Advance Shipment Stage** | `/api/orders/{order_id}/advance-status` | POST | Moves status (Created → In-Transit → Delivered) |
-| **Complete Delivery & Learning** | `/api/orders/{order_id}/complete-delivery` | POST | Records outcome, updates supplier score (+7 pts), resolves alerts |
-| **Supplier Scorecards** | `/api/suppliers/scorecards` | GET | Live scorecards with dynamic trust score deltas |
-| **Supplier Performance History**| `/api/suppliers/{id}/history` | GET | Historical delivery fulfillment outcome records |
+| **Complete Delivery & Learning** | `/api/orders/{order_id}/complete-delivery` | POST | Records outcome, updates supplier score (+5 pts), resolves alerts |
 | **Verify Razorpay Payment** | `/api/payments/verify` | POST | Verifies HMAC, transitions PO to PAID, spawns shipment |
 | **Interactive API Docs** | `/docs` | GET | Swagger UI for all backend endpoints |
 

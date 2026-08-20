@@ -49,10 +49,19 @@ class InventoryModel(Base):
     on_hand = Column(Integer, default=0)
     min_safety = Column(Integer, default=0)
     incoming = Column(Integer, default=0)
-    unit_cost = Column(String, default="$100.00")
+    unit_cost = Column(String, default="₹100.00")
     turnover = Column(String, default="10.0x/yr")
     status = Column(String, default="Optimal")
     status_color = Column(String, default="tertiary")
+    is_perishable = Column(Boolean, default=False)
+    shelf_life_days = Column(Integer, default=30)
+    expiry_date = Column(String, default="2026-11-30")
+    waste_risk = Column(String, default="NORMAL") # NORMAL, WASTE_RISK, EXPIRING_SOON, CRITICAL
+    primary_supplier_id = Column(String, default="SUP-01")
+    supplier_dependency_pct = Column(Integer, default=65) # Single point of failure if >70%
+    alternative_suppliers_count = Column(Integer, default=3)
+    authenticity_risk_score = Column(Integer, default=8) # 0-100 (lower is safer)
+    batch_id = Column(String, default="BATCH-2026-001")
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class SupplierModel(Base):
@@ -69,6 +78,34 @@ class SupplierModel(Base):
     active_contracts = Column(Integer, default=1)
     lead_time_days = Column(Integer, default=14)
     avatar = Column(String, default="factory")
+    supplier_tier = Column(String, default="TIER_1") # TIER_1, TIER_2, TIER_3
+    supplier_size = Column(String, default="MID_MARKET") # ENTERPRISE, MID_MARKET, SMALL / SME
+    sme_opportunity_score = Column(Integer, default=80) # 0-100
+    transport_mode = Column(String, default="ROAD") # AIR, OCEAN, RAIL, ROAD
+    distance_km = Column(Float, default=450.0)
+    carbon_emission_factor = Column(Float, default=0.105) # kg CO2 / ton-km
+    carbon_score = Column(Integer, default=85) # 0-100
+    estimated_co2_kg = Column(Float, default=420.0)
+    sustainability_rank = Column(String, default="A") # A+, A, B, C
+    authenticity_verified = Column(Boolean, default=True)
+    parent_supplier_id = Column(String, nullable=True) # For Tier 2/3 linkage
+
+class ProductTraceabilityModel(Base):
+    __tablename__ = "product_traceability"
+
+    id = Column(String, primary_key=True, index=True) # e.g. TRC-2026-001
+    organization_id = Column(String, default="ORG-DEFAULT", index=True)
+    batch_id = Column(String, nullable=False, index=True)
+    sku = Column(String, nullable=False, index=True)
+    product_name = Column(String, nullable=False)
+    supplier_id = Column(String, nullable=False, index=True)
+    supplier_name = Column(String, nullable=False)
+    purchase_order_id = Column(String, nullable=True)
+    shipment_id = Column(String, nullable=True)
+    authentication_status = Column(String, default="VERIFIED") # VERIFIED, PENDING, FLAGGED
+    authenticity_risk_score = Column(Integer, default=8) # 0-100
+    chain_of_custody_json = Column(Text, nullable=True) # JSON custody checkpoints
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class RestockApprovalModel(Base):
     __tablename__ = "approvals"

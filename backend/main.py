@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse
 
 from backend.database import engine, Base
 from backend.seed_data import init_db_and_seed
-from backend.routers import auth, orders, inventory, suppliers, approvals, ai, payments
+from backend.routers import auth, orders, inventory, suppliers, approvals, ai, payments, resilience, sustainability, traceability
 
 # Initialize FastAPI App
 app = FastAPI(
@@ -40,6 +40,9 @@ app.include_router(suppliers.router)
 app.include_router(approvals.router)
 app.include_router(ai.router)
 app.include_router(payments.router)
+app.include_router(resilience.router)
+app.include_router(sustainability.router)
+app.include_router(traceability.router)
 
 # Health Check Endpoint
 @app.get("/api/health")
