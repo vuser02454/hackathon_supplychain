@@ -1,5 +1,10 @@
 import uvicorn
 import socket
+from dotenv import load_dotenv
+
+# Load .env variables
+load_dotenv()
+
 from backend.main import app
 
 def get_local_ip():

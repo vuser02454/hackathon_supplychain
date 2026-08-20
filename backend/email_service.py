@@ -6,6 +6,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
 from typing import Dict, Any, Optional, List
+from dotenv import load_dotenv
+
+# Automatically load .env configuration
+load_dotenv()
 
 SENT_EMAILS_LOG_PATH = os.path.join(os.path.dirname(__file__), "sent_emails.json")
 
