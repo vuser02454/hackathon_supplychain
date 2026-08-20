@@ -1,6 +1,6 @@
 # ⚡ SupplyChain.AI — Autonomous Enterprise Logistics & Financial Intelligence
 
-An autonomous, AI-driven supply chain orchestration platform featuring predictive inventory intelligence, real-time freight tracking, supplier performance analytics, dynamic restock approval workflows, Supabase cloud database integration, low-stock threshold monitoring with automated email notifications, and B2B payment settlement in Indian Rupees (₹) with smart escrow.
+An autonomous, AI-driven supply chain orchestration platform featuring predictive inventory intelligence, real-time freight tracking, supplier performance analytics, dynamic restock approval workflows, Supabase cloud database integration, low-stock threshold monitoring with automated email notifications delivered dynamically to the active user, and B2B payment settlement in Indian Rupees (₹) with smart escrow.
 
 ---
 
@@ -16,10 +16,11 @@ An autonomous, AI-driven supply chain orchestration platform featuring predictiv
 - **Interactive Global Logistics Map:** Interactive supply node hotspots (Shenzhen, Rotterdam, Chicago, Austin, Kolwezi) with real-time waypoint data.
 - **Inventory Risk & Stockout Forecast Widget:** Live counters for Critical, Low Stock, and Normal inventory, with Highest Risk SKU spotlight and Days-to-Stockout countdown.
 
-### 3. 🚨 Low Stock Alerts & Email Notification System (`/api/inventory/alerts`)
+### 3. 🚨 Low Stock Alerts & Dynamic User Email Notification System (`/api/inventory/alerts`)
 - **Continuous Threshold Evaluation:** Automatically monitors inventory records, classifying items into `NORMAL`, `LOW` (below safety stock), and `CRITICAL` (below 50% safety stock).
+- **Dynamic Logged-In User Routing:** Automatically sends notification emails directly to the **active logged-in user's email address** (or the email saved in Profile & Settings). No hardcoded emails.
 - **Duplicate Prevention Engine:** Deduplicates open alerts per `organization_id + sku + severity` to eliminate redundant email spamming.
-- **Production Email Service (`backend/email_service.py`):** Dispatches rich HTML & plain-text alert emails via **Resend API** with graceful fallback logging if API keys are unconfigured.
+- **Production Email Service (`backend/email_service.py`):** Dispatches dark-themed HTML & plain-text alert emails via **Resend API** with graceful fallback logging if API keys are unconfigured.
 - **Top Navigation Bell & Alert Center:** Live pulsating badge count on the topbar bell with slide-over drawer displaying alert telemetry, email dispatch status, and 1-click AI restock reviews.
 - **Automated Resolution:** Open alerts are automatically resolved when inventory is replenished above safety thresholds.
 
@@ -70,7 +71,7 @@ An autonomous, AI-driven supply chain orchestration platform featuring predictiv
 - **Frontend:** Responsive Dark-Theme Enterprise Glassmorphism (Tailwind CSS, Geist & Inter Typography, Material Symbols, `supplychain.js` unified client engine).
 - **Backend API:** FastAPI (Python 3.11+) with SQLite / PostgreSQL & SQLAlchemy ORM.
 - **Cloud Database:** **Supabase PostgreSQL** with automated table sync and Row-Level Security (RLS).
-- **Email Notification Service:** Resend API integration (`backend/email_service.py`) with resilient logging fallback.
+- **Email Notification Service:** Resend API integration (`backend/email_service.py`) with dynamic user email delivery and resilient logging fallback.
 - **AI Multi-Model Dual Engine:**
   - **OpenRouter API & Google Gemini:** Neural demand forecasting and interactive RAG Copilot.
   - **Groq API Acceleration:** High-speed LLM inference (`openai/gpt-oss-120b`).
@@ -106,7 +107,7 @@ An autonomous, AI-driven supply chain orchestration platform featuring predictiv
 │   ├── ai_service.py                                  # RAG Copilot, Low Stock Sourcing, & Forecasting Engine
 │   └── routers/
 │       ├── auth.py                                    # Authentication & User Profile APIs (Supabase synced)
-│       ├── inventory.py                               # Inventory Level, Alerts, Stock Scan, & Demo Simulator APIs
+│       ├── inventory.py                               # Inventory Level, Alerts, & Stock Scan APIs
 │       ├── orders.py                                  # Orders & Freight Tracking APIs
 │       ├── suppliers.py                               # Supplier Scorecard APIs
 │       ├── approvals.py                               # Restock Purchase Approval APIs
@@ -171,21 +172,20 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ---
 
-## ⚡ Hackathon Demo Walkthrough (Simulate Stockout)
+## 🔄 Live Inventory Monitoring & Restock Workflow
 
-To demonstrate the full autonomous sourcing and alerting pipeline to judges:
-
-1. Open **[Dashboard](http://localhost:8000/dashboard)**.
-2. In the **Inventory Risk & Stockout Forecast** widget, click **`⚡ DEMO: Simulate Stockout`**.
-3. **Instant Event Reactions**:
-   - Stock for `SKU-AVO-303` drops to 12 units.
-   - Live toast notification fires: `🚨 CRITICAL STOCK ALERT`.
-   - Topbar notification bell illuminates with a pulsating red badge.
-   - Email dispatch is triggered via backend service.
-4. **AI Sourcing Proposal Dialog**:
-   - Opens showing stockout countdown (`~0.4 Days remaining`) and optimal replenishment calculation (`688 Units` at `₹19,264.00 INR`).
-5. **Human Approval & Settlement**:
-   - Click **`Approve Restock & Route to PO`** $\rightarrow$ Authorize in **Restock Approvals** $\rightarrow$ Unlock and complete **Razorpay Escrow Payment** in **Payments**!
+1. **Continuous Telemetry Scan**:
+   - The platform continuously audits warehouse balances against dynamic safety thresholds.
+   - You can also trigger an on-demand audit anytime using **`Scan Telemetry`** on the Dashboard or **`Scan Thresholds`** on the Inventory page.
+2. **Dynamic User Alerting**:
+   - If stock falls below minimum safety buffers, an email is dispatched directly to the active user's email address with item telemetry and days-to-stockout calculations.
+   - The topbar notification bell lights up with a pulsating alert badge.
+3. **AI Sourcing & PO Approval**:
+   - Open the notification drawer and click **`Review AI Restock`** to view neural lead-time and pricing proposals.
+   - Adjust quantities in real-time and click **`Approve Restock & Route to PO`**.
+4. **Financial Authorization & Escrow**:
+   - Authorize the drafted PO in **Restock Approvals**.
+   - Settle via **Razorpay Escrow** in **Payment Gateway** in Indian Rupees (`₹ INR`).
 
 ---
 
@@ -202,10 +202,9 @@ To demonstrate the full autonomous sourcing and alerting pipeline to judges:
 | **AI Demand Forecasting**| `/ai-insights` | GET | Neural profit/loss forecast & vendor arbitrage |
 | **Restock Approvals** | `/restock-approval` | GET | Purchase order authorization desk |
 | **Payment Gateway** | `/payments` | GET | B2B payment & escrow portal in ₹ INR |
-| **Scan Inventory Thresholds**| `/api/inventory/check-stock` | POST | Runs threshold scan & generates alert emails |
+| **Scan Inventory Thresholds**| `/api/inventory/check-stock` | POST | Evaluates thresholds & routes emails to active user |
 | **Unread Alerts Summary** | `/api/inventory/alerts/unread` | GET | Unread count & severity summary for topbar bell |
 | **Inventory Alerts Roster** | `/api/inventory/alerts` | GET | Full alert history with resolved filters |
-| **Simulate Stockout Demo** | `/api/inventory/simulate-stockout`| POST | Hackathon demo simulation trigger |
 | **AI Restock Proposal** | `/api/inventory/{sku}/restock-recommendation` | POST | Neural stockout calculation & supplier quote |
 | **Interactive API Docs** | `/docs` | GET | Swagger UI for all backend endpoints |
 
