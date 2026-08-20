@@ -12,8 +12,8 @@
     user: {
       name: 'Alexander Vance',
       role: 'VP of Global Logistics',
-      email: 'a.vance@supplychain.ai',
-      phone: '+1 (555) 382-9014',
+      email: 'vvijwal01@gmail.com',
+      phone: '+91 98765 43210',
       dept: 'Global Autonomous Supply Logistics (ORD-3)',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
       authenticated: true
@@ -2825,9 +2825,9 @@
 
       <!-- Panel Footer -->
       <div class="p-3 border-t border-[#273647] bg-[#122131]/60 flex items-center justify-between text-[11px]">
-        <button onclick="window.simulateStockoutDemo()" class="px-2.5 py-1.5 rounded-lg bg-[#ff5c35]/20 hover:bg-[#ff5c35]/30 text-[#ff5c35] border border-[#ff5c35]/40 font-bold text-[10px] flex items-center gap-1.5 active:scale-95 transition-all">
-          <span class="material-symbols-outlined text-xs">bolt</span>
-          <span>⚡ DEMO: Simulate Stockout</span>
+        <button onclick="window.refreshAlertsPanel()" class="px-2.5 py-1.5 rounded-lg bg-[#1c2b3c] hover:bg-[#273647] text-[#7bd0ff] border border-[#273647] font-bold text-[10px] flex items-center gap-1.5 active:scale-95 transition-all">
+          <span class="material-symbols-outlined text-xs">sync</span>
+          <span>Scan Inventory Now</span>
         </button>
         <a href="inventory.html" class="text-xs text-[#7bd0ff] hover:underline font-bold">Inspect Inventory &rarr;</a>
       </div>
@@ -3282,9 +3282,9 @@
                 <p class="text-[11px] text-[#8992a8]">Continuous safety buffer monitoring & automated email alerts</p>
               </div>
             </div>
-            <button onclick="window.simulateStockoutDemo()" class="px-3 py-1.5 rounded-lg bg-[#ff5c35]/20 hover:bg-[#ff5c35]/30 text-[#ff5c35] border border-[#ff5c35]/40 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
-              <span class="material-symbols-outlined text-sm">bolt</span>
-              <span>⚡ DEMO: Simulate Stockout</span>
+            <button onclick="window.refreshAlertsPanel()" class="px-3 py-1.5 rounded-lg bg-[#1c2b3c] hover:bg-[#273647] text-[#7bd0ff] border border-[#273647] font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95">
+              <span class="material-symbols-outlined text-sm">sync</span>
+              <span>Scan Telemetry</span>
             </button>
           </div>
 

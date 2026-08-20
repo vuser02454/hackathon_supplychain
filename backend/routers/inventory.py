@@ -153,7 +153,9 @@ def check_stock_and_notify(
     """
     items = db.query(InventoryModel).all()
     user = db.query(UserModel).first()
-    user_email = user.email if user else "a.vance@supplychain.ai"
+    import os
+    configured_email = os.getenv("ALERT_RECIPIENT_EMAIL") or os.getenv("USER_EMAIL") or os.getenv("RESEND_TO_EMAIL")
+    user_email = configured_email or (user.email if user and "@" in user.email and "supplychain.ai" not in user.email else "vvijwal01@gmail.com")
     user_name = user.name if user else "Alexander Vance"
 
     normal_count = 0

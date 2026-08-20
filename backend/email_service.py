@@ -18,6 +18,9 @@ def send_low_stock_email(
     resend_api_key = os.getenv("RESEND_API_KEY")
     email_from = os.getenv("EMAIL_FROM", "SupplyChain.AI Alerts <onboarding@resend.dev>")
     
+    # Priority recipient: ALERT_RECIPIENT_EMAIL / USER_EMAIL / user_email / vvijwal01@gmail.com
+    target_email = os.getenv("ALERT_RECIPIENT_EMAIL") or os.getenv("USER_EMAIL") or (user_email if user_email and "@" in user_email and "supplychain.ai" not in user_email else "vvijwal01@gmail.com")
+    
     product_name = inventory_item.get("name", "Item")
     sku = inventory_item.get("sku", alert_data.get("sku", "SKU-UNKNOWN"))
     warehouse = inventory_item.get("warehouse", "Central Hub")
@@ -157,7 +160,7 @@ http://localhost:8000/restock-approval?sku={sku}&source=email_alert
             "status": "unconfigured",
             "message": "Email provider not configured — alert stored but email not sent.",
             "subject": subject,
-            "recipient": user_email
+            "recipient": target_email
         }
 
     try:
@@ -168,7 +171,7 @@ http://localhost:8000/restock-approval?sku={sku}&source=email_alert
         }
         payload = {
             "from": email_from,
-            "to": [user_email],
+            "to": [target_email],
             "subject": subject,
             "html": html_content,
             "text": plain_text
@@ -177,13 +180,13 @@ http://localhost:8000/restock-approval?sku={sku}&source=email_alert
         response = requests.post(url, headers=headers, json=payload, timeout=8)
         if response.status_code in (200, 201):
             data = response.json()
-            print(f"[Email Service] Email successfully dispatched to {user_email} (ID: {data.get('id')})")
+            print(f"[Email Service] Email successfully dispatched to {target_email} (ID: {data.get('id')})")
             return {
                 "success": True,
                 "status": "sent",
                 "message_id": data.get("id"),
                 "subject": subject,
-                "recipient": user_email
+                "recipient": target_email
             }
         else:
             print(f"[Email Service Error] Status {response.status_code}: {response.text}")
@@ -192,7 +195,7 @@ http://localhost:8000/restock-approval?sku={sku}&source=email_alert
                 "status": "error",
                 "message": f"Resend API error: {response.text}",
                 "subject": subject,
-                "recipient": user_email
+                "recipient": target_email
             }
     except Exception as e:
         print(f"[Email Service Exception]: {e}")
