@@ -167,18 +167,6 @@ Open your browser at: **`http://localhost:8000`**
 
 ---
 
-## 📁 Directory Structure
-
-```
-├── main.py                                            # Unified application launcher (FastAPI / Uvicorn)
-├── supplychain.js                                     # Central client engine (State, Modals, AI Decision Matrix, Alerts, Toast)
-├── global_supply_map.jpg                              # Telemetry visual asset & global map
-├── vercel.json                                        # Vercel Deployment & Routing Configuration
-├── render.yaml                                        # Render Cloud Blueprint Configuration
-├── index.html                                         # 🔐 Authentication Portal
-├── dashboard.html                                     # 📊 Executive Dashboard & Closed-Loop Pipeline Widget
----
-
 ## 🌍 Problem Statement 7: Resilience & Sustainability in Global Supply Chains
 
 SupplyChain.AI is explicitly architected to address the **5 critical challenges** outlined in Problem Statement 7:
